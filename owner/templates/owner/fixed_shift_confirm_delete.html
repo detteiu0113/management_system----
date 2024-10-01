@@ -1,0 +1,18 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}固定シフト削除{% endblock %}
+{% block headline %}<a href="{% url 'owner:fixed_shift_list' %}">講師出勤</a>>固定シフト削除{% endblock %}
+
+{% block content %}
+<div class="container w-50">
+    <div class="card">
+        <div class="card-body">
+            <p class="card-text">{{ object }}を削除してもよろしいですか?</p>
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">削除</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

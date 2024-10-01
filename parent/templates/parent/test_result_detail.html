@@ -1,0 +1,105 @@
+{% extends 'parent/base.html' %}
+
+{% block title %}シフト一覧{% endblock %}
+
+{% block head %}
+<style>
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+        margin-top: 60px;
+    }
+    .table th, .table td {
+        border: 1px solid #dee2e6;
+        padding: 8px;
+        text-align: center;
+    }
+    .table thead th {
+        background-color: #343a40;
+        color: #fff;
+        font-weight: bold;
+    }
+    .table tbody tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+    @media screen and (max-width: 768px) {
+        .table {
+            white-space: nowrap;
+        }
+    } 
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead class="thead-dark">
+                <tr>
+                    <th></th>
+                    <th></th>
+                    <th class="text-center">国語</th>
+                    <th class="text-center">数学</th>
+                    <th class="text-center">社会</th>
+                    <th class="text-center">理科</th>
+                    <th class="text-center">英語</th>
+                    <th class="text-center">5計</th>
+                    <th class="text-center">音楽</th>
+                    <th class="text-center">美術</th>
+                    <th class="text-center">体育</th>
+                    <th class="text-center">技術</th>
+                    <th class="text-center">9計</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for test_result in test_results %}
+                    <tr>
+                        <th rowspan="3" class="text-center align-middle">{{ test_result.average_score.test_name }}</th>
+                        <th class="text-center">点数</th>
+                        <td class="text-center">{{ test_result.jap|default:"" }}</td>
+                        <td class="text-center">{{ test_result.mat|default:"" }}</td>
+                        <td class="text-center">{{ test_result.soc|default:"" }}</td>
+                        <td class="text-center">{{ test_result.sci|default:"" }}</td>
+                        <td class="text-center">{{ test_result.eng|default:"" }}</td>
+                        <td class="text-center"></td>
+                        <td class="text-center">{{ test_result.mus|default:"" }}</td>
+                        <td class="text-center">{{ test_result.art|default:"" }}</td>
+                        <td class="text-center">{{ test_result.phy|default:"" }}</td>
+                        <td class="text-center">{{ test_result.tec|default:"" }}</td>
+                        <td class="text-center"></td>
+                    </tr>
+                    <tr>
+                        <th class="text-center">平均点</th>
+                        <td class="text-center">{{ test_result.average_score.jap|default:"" }}</td>
+                        <td class="text-center">{{ test_result.average_score.mat|default:"" }}</td>
+                        <td class="text-center">{{ test_result.average_score.soc|default:"" }}</td>
+                        <td class="text-center">{{ test_result.average_score.sci|default:"" }}</td>
+                        <td class="text-center">{{ test_result.average_score.eng|default:"" }}</td>
+                        <td class="text-center">{{ test_result.average_score.five_total|default:"" }}</td>
+                        <td class="text-center">{{ test_result.average_score.mus|default:"" }}</td>
+                        <td class="text-center">{{ test_result.average_score.art|default:"" }}</td>
+                        <td class="text-center">{{ test_result.average_score.phy|default:"" }}</td>
+                        <td class="text-center">{{ test_result.average_score.tec|default:"" }}</td>
+                        <td class="text-center">{{ test_result.average_score.nine_total|default:"" }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-center">順位</th>
+                        <td class="text-center">{{ test_result.jap_rank|default:"" }}</td>
+                        <td class="text-center">{{ test_result.mat_rank|default:"" }}</td>
+                        <td class="text-center">{{ test_result.soc_rank|default:"" }}</td>
+                        <td class="text-center">{{ test_result.sci_rank|default:"" }}</td>
+                        <td class="text-center">{{ test_result.eng_rank|default:"" }}</td>
+                        <td class="text-center">{{ test_result.five_total_rank|default:"" }}</td>
+                        <td class="text-center">{{ test_result.mus_rank|default:"" }}</td>
+                        <td class="text-center">{{ test_result.art_rank|default:"" }}</td>
+                        <td class="text-center">{{ test_result.phy_rank|default:"" }}</td>
+                        <td class="text-center">{{ test_result.tec_rank|default:"" }}</td>
+                        <td class="text-center">{{ test_result.nine_total_rank|default:"" }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}通知簿{% endblock %}
+{% block headline %}データ入力>通知簿{% endblock %}
+
+{% block style %}
+<style>
+    /* Custom CSS for list */
+    .custom-list {
+        list-style: none;
+        padding: 0;
+    }
+    .custom-list li {
+        margin-bottom: 20px;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s;
+    }
+    .custom-list li:hover {
+        transform: translateY(-5px);
+    }
+    .custom-list li a {
+        color: #333;
+        text-decoration: none;
+        transition: color 0.3s;
+    }
+    .custom-list li a:hover {
+        color: #007bff;
+    }
+    .title {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <ul class="custom-list">
+        {% for semester in semesters %}
+            <li>
+                <a href="{% url 'owner:report_card_form' semester.0 %}">
+                    <div style="font-size: 20px; font-weight: bold;">{{ semester.1 }}</div>
+                    <div style="font-size: 16px;">データを入力する</div>
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+{% endblock %}
+

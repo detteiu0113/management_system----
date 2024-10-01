@@ -1,0 +1,41 @@
+{% extends 'teacher/base.html' %}
+
+{% block title %}報告書一覧{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mt-3">
+        <h4>今日の報告書</h4>
+        <ul class="list-group">
+            {% for lesson in lessons %}
+                <li class="list-group-item">
+                    <a href="{% url 'teacher:submit_report' lesson.pk %}" class="text-decoration-none">
+                        {% if lesson.is_rescheduled %}{{ lesson.get_rescheduled_time_display }}{% else %}{{ lesson.get_time_display }}{% endif %} {{ lesson.get_grade_display }} {{ lesson.get_subject_display }} {{ lesson.student }}
+                    </a>
+                </li>
+            {% empty %}
+            <li class="list-group-item">報告書はありません。</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% if reported_lessons %}
+    <div class="row mt-3">
+        <h4>報告済み</h4>
+        <ul class="list-group">
+            {% for lesson in reported_lessons %}
+                    <li class="list-group-item">
+                        <a href="{% url 'teacher:submit_report_edit' lesson.report.pk %}" class="text-decoration-none">
+                            {% if lesson.is_rescheduled %}{{ lesson.get_rescheduled_time_display }}{% else %}{{ lesson.get_time_display }}{% endif %} {{ lesson.get_grade_display }} {{ lesson.get_subject_display }} {{ lesson.student }}
+                        </a>
+                    </li>
+            {% empty %}
+            <li class="list-group-item">報告済みの報告書はありません。</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    <div class="row mt-3">
+        <a class="btn btn-primary" href="{% url 'teacher:submit_vocabulary_test' %}">英単語テスト送信フォーム</a>
+    </div>
+</div>
+{% endblock %}

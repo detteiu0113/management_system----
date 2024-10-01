@@ -1,0 +1,107 @@
+{% extends 'parent/base.html' %}
+
+{% block title %}成績閲覧{% endblock %}
+
+{% block head %}
+<style>
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+    .table th, .table td {
+        border: 1px solid #dee2e6;
+        padding: 8px;
+        text-align: center;
+    }
+    .table thead th {
+        background-color: #343a40;
+        color: #fff;
+        font-weight: bold;
+    }
+    .table tbody tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+    @media screen and (max-width: 768px) {
+        .table {
+            white-space: nowrap;
+        }
+    } 
+</style>
+{% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead class="thead-dark">
+                    <tr>
+                        <th></th>
+                        <th>国語</th>
+                        <th>数学</th>
+                        <th>英語</th>
+                        <th>社会</th>
+                        <th>理科</th>
+                        <th>5計</th>
+                        <th>音楽</th>
+                        <th>美術</th>
+                        <th>体育</th>
+                        <th>技家</th>
+                        <th>9計</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% regroup grades by semester as semester_list %}
+
+                    {% for semester in semester_list %}
+                        <tr>
+                            <td>{% cycle '1年1学期' '1年2学期' '1年3学期' '2年1学期' '2年2学期' '2年3学期' '3年1学期' '3年2学期' %}</td>
+                            {% for grade in semester.list %}
+                                <td>
+                                    {% if grade.value %}
+                                        {{ grade.value }}
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script>
+        // 表の各行に対して処理を行う
+        document.querySelectorAll('tr').forEach(function(row) {
+            // 各行の科目のセルを取得する
+            var cells = row.querySelectorAll('td');
+            console.log(cells);
+            if (cells.length > 0) {
+                var total5Subjects = 0;
+                var total9Subjects = 0;
+                
+                // 最初のセルは学期を表すセルなので、計算には含めない
+                for (var i = 1; i < cells.length; i++) {
+                    // セルの値を数値に変換し、NaNでなければ合計に追加する
+                    var cellValue = parseFloat(cells[i].textContent);
+                    if (!isNaN(cellValue)) {
+                        total9Subjects += cellValue;
+                        // 最初の5科目の合計
+                        if (i <= 5) {
+                            total5Subjects += cellValue;
+                        }
+                    }
+                }
+                
+                var total5Cell = document.createElement('td');
+                total5Cell.textContent = total5Subjects !== 0 ? total5Subjects : ''; // 値が0なら空白を表示
+                var insertionIndex = 6; // 0-indexed
+                row.insertBefore(total5Cell, row.children[insertionIndex]);
+
+                var total9Cell = document.createElement('td');
+                total9Cell.textContent = total9Subjects !== 0 ? total9Subjects : ''; // 値が0なら空白を表示
+                row.appendChild(total9Cell);
+            };
+        });
+    </script>
+    
+{% endblock %}

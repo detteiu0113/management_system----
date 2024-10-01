@@ -1,0 +1,50 @@
+{% extends 'teacher/base.html' %}
+
+{% block title %}生徒資料{% endblock %}
+{% block headline %}生徒資料{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <h4>{{ student }}の資料</h4>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card border-primary mb-3">
+                    <div class="card-header">テスト結果</div>
+                    <div class="card-body text-primary">
+                        <p class="card-text">{{ student }}のテスト結果を表示します。</p>
+                        <a href="{% url 'teacher:test_result_detail' pk %}" class="btn btn-primary">確認</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border-secondary mb-3">
+                    <div class="card-header">通知簿</div>
+                    <div class="card-body text-secondary">
+                        <p class="card-text">{{ student }}の通知簿を表示します。</p>
+                        <a href="{% url 'teacher:report_card_detail' pk %}" class="btn btn-secondary">確認</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card border-success mb-3">
+                    <div class="card-header">授業報告書</div>
+                    <div class="card-body text-success">
+                        <p class="card-text">{{ student }}の報告書を表示します。</p>
+                        <a href="{% url 'teacher:report_detail' pk %}" class="btn btn-success">確認</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border-danger mb-3">
+                    <div class="card-header">英単語テスト</div>
+                    <div class="card-body text-danger">
+                        <p class="card-text">{{ student }}の英単語テストの結果を表示します。</p>
+                        <a href="{% url 'teacher:vocabulary_test_detail' pk %}" class="btn btn-danger">確認</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

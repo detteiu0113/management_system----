@@ -1,0 +1,60 @@
+{% extends 'parent/base.html' %}
+
+{% block title %}生徒の切り替え{% endblock %}
+
+{% block style %}
+<style>
+    .custom-card {
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.custom-card-header {
+    background-color: #f8f9fa;
+    padding: 10px;
+}
+
+.custom-card-body {
+    padding: 20px;
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+    <div class="card custom-card">
+        <div class="card-header custom-card-header bg-dark">
+            <h1 class="card-title text-center text-white">生徒の切り替え</h1>
+        </div>
+        <div class="card-body custom-card-body">
+            <form method="post" id="switch-student-form">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit" id="submit" class="btn btn-primary" disabled>生徒切替↻</button>
+            </form>
+        </div>
+    </div>
+{% endblock %}
+
+{% block script %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('switch-student-form');
+        const studentField = form.querySelector('#id_student'); // フィールドの ID を使って取得
+
+        function toggleButtonState() {
+            const submitButton = form.querySelector('button[type="submit"]');
+            if (studentField.value) { // 生徒が選択されている場合は有効にする
+                submitButton.removeAttribute('disabled');
+            } else { // 生徒が選択されていない場合は無効にする
+                submitButton.setAttribute('disabled', 'disabled');
+            }
+        }
+
+        toggleButtonState(); // ページ読み込み時にボタンの状態を確認
+
+        studentField.addEventListener('change', toggleButtonState); // 生徒の選択が変更されたときにボタンの状態を更新
+    });
+</script>
+{% endblock %}

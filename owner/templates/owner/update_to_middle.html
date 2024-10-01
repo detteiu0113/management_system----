@@ -1,0 +1,56 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}生徒情報{% endblock %}
+{% block headline %}年度切り替え><a href="{% url 'owner:update_student_list' %}">生徒情報</a>>小学生6年生{% endblock %}
+
+{% block head %}
+<style>
+    /* Adjust form margin and padding */
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    /* Style form input and label */
+    .form-control {
+        width: 100%;
+    }
+
+    /* Hide the hidden checkbox */
+    .d-none {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h2 class="text-center">小→中切替</h2>
+                </div>
+                <div class="card-body">
+                    <form action="" method="post">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="{{ form.school.id_for_label }}">中学名</label>
+                            {{ form.school }}
+                        </div>
+                        <button type="submit" id="submit"  class="btn btn-dark btn-block">送信</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    var submit = document.getElementById('submit')
+    submit.addEventListener('click', function() {
+        spinnerOverlay.classList.remove('d-none')
+    });
+</script>
+{% endblock %}

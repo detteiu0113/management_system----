@@ -1,0 +1,118 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}生徒情報{% endblock %}
+{% block headline %}生徒情報{% endblock %}
+
+{% block style %}
+<style>
+    .card {
+        box-shadow: 0 6px 8px 0 rgba(0, 0, 0, 0.4);
+        transition: 0.3s;
+        width: 100%;
+        margin: auto;
+        margin-bottom: 20px;
+        border-radius: 5px; /* カードの角を丸くする */
+        overflow: hidden; /* 内容がカードの外にはみ出さないようにする */
+    }
+
+    .card:hover {
+        box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
+    }
+
+    .container {
+        padding: 2px 16px;
+        text-align: center; /* テーブルタイトルを真ん中に配置 */
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        border-spacing: 0;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        color: black;
+    }
+
+    th, td {
+        padding: 12px;
+        text-align: left;
+    }
+
+    thead {
+        background-color: #343a40;
+        color: #fff;
+    }
+
+    tbody tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }
+
+    a {
+        color: #007bff;
+        text-decoration: none;
+    }
+
+    a:hover {
+        color: #0056b3;
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card py-3">
+  <div class="container">
+    <div class="col-md-3 d-flex justify-content-end ms-auto mb-3">
+        <select class="form-select custom-select pe-0 " id="gradeFilter" name="grade">
+            <option value="">学年を絞り込む</option>
+            {% for grade in grades %}
+                <option value="{{ grade }}">{{ grade }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <table id="example" cellspacing="0" width="100%">
+        <thead>
+            <tr>
+                <th>保護者名</th>
+                <th>学年</th>
+                <th>生徒名</th>
+                <th>個人情報</th>
+                <th>生徒資料</th>
+            </tr>
+        </thead>
+         <tbody>
+            {% for student in students %}
+                <tr class="border-bottom">
+                    <td>{{ student.parent.all.0.user }}</td>
+                    <td>{{ student.get_grade_display }}</td>
+                    <td>{{ student }}</td>
+                    <td><a href="{% url 'owner:student_detail' student.pk %}">確認</a></td>
+                    <td><a href="{% url 'owner:document_select' student.pk %}">確認</a></td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        document.getElementById("gradeFilter").addEventListener("change", function() {
+            var selectedGrade = this.value;  // 選択された学年を取得
+            var rows = document.querySelectorAll("tbody tr");  // テーブルのすべての行を取得
+    
+            // 選択された学年と一致する行のみ表示する
+            rows.forEach(function(row) {
+                var gradeCell = row.querySelector("td:nth-child(2)"); // 学年が表示されているセル
+                if (selectedGrade === "" || gradeCell.textContent.trim() === selectedGrade) {
+                    row.style.display = ""; // 表示
+                } else {
+                    row.style.display = "none"; // 非表示
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

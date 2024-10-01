@@ -1,0 +1,70 @@
+{% extends 'parent/base.html' %}
+
+{% block title %}シフト希望提出{% endblock %}
+
+{% block content %}
+<div class="container">
+    {% if requests %}
+    <button type="button" id="submitButton" class="btn btn-secondary">保存</button>
+    <table class="table">
+        <thead>
+            <th></th>
+            {% for time in times %}
+            <th>{{ time.1 }}</th>
+            {% endfor %}
+        </thead>
+        <tbody>
+            {% regroup requests by date as date_list %}
+            {% for date, list in date_list %}
+            <tr data-date="{{ date|date:'Y-m-d' }}">
+                <th>{{ date }}</th>
+                {% for request in list %}
+                <td>
+                    <div class="form-check">
+                        <input data-time="{{ request.time }}" class="form-check-input" type="checkbox" {% if request.is_available %}checked{% endif %}>
+                    </div>
+                </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <h4>受講登録がされていません。</h4>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    document.getElementById('submitButton').addEventListener('click', function(event) {
+        jsonData = {};
+        document.querySelectorAll('tbody tr').forEach(function(row) {
+            date = row.dataset.date;
+            jsonData[date] = {};
+            row.querySelectorAll('input').forEach(function(checkbox) {
+                time = checkbox.dataset.time;
+                bool = checkbox.checked;
+                jsonData[date][time] = bool;
+            })
+        })
+        
+        // Ajaxリクエストを送信
+        $.ajax({
+            type: "POST",
+            url: "",
+            data: {
+                'csrfmiddlewaretoken': '{{ csrf_token }}',  // CSRFトークンを含める（Djangoテンプレートタグを使用）
+                'json_data': JSON.stringify(jsonData),
+            },
+            success: function(response) {
+                // 成功した場合の処理を記述
+                window.location.href = response.redirect_url;  // リダイレクトする場合
+            },
+            error: function(xhr, textStatus, errorThrown) {
+                // 処理を追加
+            }
+        })
+    })
+</script>
+{% endblock %}

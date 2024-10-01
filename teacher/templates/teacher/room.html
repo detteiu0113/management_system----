@@ -1,0 +1,279 @@
+{% extends 'teacher/base.html' %}
+{% block title %}{{ room.name }} | {% endblock %}
+{% block content %}
+
+{% block head %}
+<style>
+    .chat-messages {
+        overflow-y: auto;
+        display: flex;
+        max-height: auto;
+        flex-direction: column;
+    }
+
+    .message-sent {
+        padding: 10px;
+        margin-bottom: 10px;
+        width: auto;
+        position: relative;
+        background-color: #c5efa4;
+        border-radius: 12px;
+        font-size: 15px; /* 自分が送信したメッセージの背景色 */
+    }
+    /* 吹き出しの形を表現するための擬似要素 */
+    .message-sent:after {
+        content: "";
+        position: absolute; /* 追加 */
+        top: 3px; 
+        right: -19px;
+        border: 8px solid transparent;
+        border-left: 18px solid #c5efa4;
+        -webkit-transform: rotate(-35deg);
+        transform: rotate(-35deg);
+    }
+    .message-received {
+        padding: 10px;
+        margin-bottom: 10px;
+        width: auto;
+        position: relative;
+        background-color: #F0F0F0; /* 相手が送信したメッセージの背景色 */
+        border-radius: 12px;
+        font-size: 15px; /* 自分が送信したメッセージの背景色 */
+    }
+    .message-received:after {
+        content: "";
+        position: absolute; /* 追加 */
+        top: 3px; 
+        left: -19px;
+        border: 8px solid transparent;
+        border-right: 18px solid #F0F0F0;
+        -webkit-transform: rotate(35deg);
+        transform: rotate(35deg);
+    }    
+    .message-username {
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    .message-content {
+        color: #555;
+        margin-top: 5px;
+    }
+
+    
+
+</style>
+{% endblock %}
+
+<div class="p-10 lg:p-20 text-center" style="background-color:#343a40;">
+    <h1 class="mb-0 text-white">{{ room.name }}</h1>
+</div>
+
+<div class="container-lg  lg:w-2/4">
+    <div class="p-4 rounded-xl " style=" background-color: #ffffff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        <div class="chat-messages space-y-3 d-flex justify-content-end" id="chat-messages">
+            {% for message in messages %}
+            <div class="row mx-3">
+                {% if message.user.username == request.user.username %}
+                <div class="col-md-6 offset-md-6"> <!-- 右側の列 -->
+                {% else %}
+                <div class="col-md-6"> <!-- 左側の列 -->
+                {% endif %}
+                <div class="d-flex justify-content-between align-items-end {% if message.user.username != request.user.username %}flex-row-reverse{% endif %}" id="{{ message.id }}">
+                    <div>
+                    {% if message.is_read %}
+                    <p class="message-status mb-0">既読</p>
+                    {% endif %}
+                    <p class="date-position">{{ message.date_added|date:"H:i" }}</p>
+                    </div>
+                    <div class="{% if message.user.username == request.user.username %}message-sent{% else %}message-received{% endif %}" style="width: 100%;">
+                        <p class="message-username">{{ message.user.username }}</p>
+                        <p class="mb-0">{{ message.content }}</p>
+                    </div>
+                </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+    </div>      
+    <div class="mt-4 p-4 rounded-xl">
+        <form action="." method="post" class="d-flex">
+            {% csrf_token %}
+            <input type="text" name="content" class="flex-1 me-3 form-control" placeholder="メッセージを入力" id="chat-message-input">
+            <input type="file" name="file" id="chat-file-input" accept=".doc, .docx, .pdf, .txt">
+            <button class="px-5 py-3 rounded-xl text-white bg-teal-600 hover:bg-teal-700" id="chat-message-submit">送信</button>
+        </form>
+    </div>
+</div>
+
+
+
+
+{{ room.slug|json_script:"json-roomname" }}
+{{ request.user.username|json_script:"json-username" }}
+<script>
+    const roomName = JSON.parse(document.getElementById('json-roomname').textContent);
+    const userName = JSON.parse(document.getElementById('json-username').textContent);
+    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsURL = `${wsProtocol}//${window.location.host}/ws/${roomName}/`;
+    let chatSocket;
+
+    // 現在の時刻を取得し、Pythonのdatetime形式と同等の形式に変換
+    function getCurrentDateTime() {
+        const currentDate = new Date();
+        const year = currentDate.getFullYear();
+        const month = ('0' + (currentDate.getMonth() + 1)).slice(-2);
+        const day = ('0' + currentDate.getDate()).slice(-2);
+        const hours = ('0' + currentDate.getHours()).slice(-2);
+        const minutes = ('0' + currentDate.getMinutes()).slice(-2);
+        const seconds = ('0' + currentDate.getSeconds()).slice(-2);
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    }
+
+    // ルームが開かれたときに自分の未読メッセージを既読にする
+    function markOwnUnreadMessagesAsRead() {
+        chatSocket.send(JSON.stringify({
+            'markOwnUnreadMessagesAsRead': true,
+            'username': userName,
+            'room': roomName
+        }));
+    }
+
+    // メッセージを既読にする関数
+    function markMessageAsRead(messageId) {
+        chatSocket.send(JSON.stringify({
+            'markMessageAsRead': true,
+            'messageId': messageId
+        }));
+    }
+
+    function connectWebSocket() {
+        chatSocket = new WebSocket(wsURL);
+
+        chatSocket.onopen = function() {
+            console.log('WebSocket connection established.');
+
+            // ファイル選択時の処理を設定
+            document.querySelector('#chat-file-input').addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                const reader = new FileReader();
+
+                reader.onload = function(event) {
+                    const fileData = event.target.result;
+
+                    // 現在の時刻を取得
+                    const currentDateTime = getCurrentDateTime();
+
+                    // WebSocket を介してファイルデータをサーバーに送信
+                    chatSocket.send(JSON.stringify({
+                        'fileData': fileData,
+                        'fileName': file.name,
+                        'fileType': file.type,
+                        'username': userName,
+                        'room': roomName,
+                        'date_added': currentDateTime // 送信時刻を含める
+                    }));
+                };
+
+                reader.readAsDataURL(file);
+            });
+        };
+
+        chatSocket.onmessage = function(e) {
+            console.log('onmessage');
+            markOwnUnreadMessagesAsRead();
+
+            const data = JSON.parse(e.data);
+
+            // 生成されたメッセージの直後に新しい行と列を追加する
+            const newMessageRow = document.createElement('div');
+            newMessageRow.classList.add('row', 'mx-3');
+
+            if (data.message) {
+                let html = `<div class="d-flex justify-content-between align-items-end">
+                                <div>
+                                <p class="message-date_added">${formatDate(data.date_added)}</p>
+                                </div>
+                                <div class="message-${data.username === userName ? 'sent' : 'received'}" style="width: 100%;">
+                                    <p class="message-username">${data.username}</p>
+                                    <p class="message-content mb-0">${data.message}</p>
+                                </div>
+                            </div>`;
+
+                function formatDate(dateString) {
+                    var date = new Date(dateString);
+                    var hours = date.getHours();
+                    var minutes = date.getMinutes();
+                    hours = hours < 10 ? '0' + hours : hours;
+                    minutes = minutes < 10 ? '0' + minutes : minutes;
+                    return hours + ':' + minutes;
+                }
+
+                const chatMessages = document.querySelector('#chat-messages');
+                const isScrolledToBottom = chatMessages.scrollHeight - chatMessages.clientHeight <= chatMessages.scrollTop + 1;
+
+                // 送信者と受信者でメッセージバブルの配置を切り替える
+                if (data.username === userName) {
+                    newMessageRow.innerHTML = `<div class="col-md-6 offset-md-6">${html}</div>`;
+                } else {
+                    newMessageRow.innerHTML = `<div class="col-md-6">${html}</div>`;
+                }
+
+                // メッセージが自分のもので、かつ相手が既読した場合に自分のメッセージに既読を付ける
+                if (data.username === userName && data.message_id) {
+                    markMessageAsRead(data.message_id);
+                }
+
+                chatMessages.appendChild(newMessageRow); // 新しいメッセージを追加
+
+                if (isScrolledToBottom) {
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            } else {
+                alert('The message was empty');
+            }
+        };
+
+        chatSocket.onclose = function(e) {
+            console.log('onclose');
+        };
+    }
+
+    connectWebSocket();
+
+    document.querySelector('#chat-message-submit').onclick = function(e) {
+        e.preventDefault();
+
+        const messageInputDom = document.querySelector('#chat-message-input');
+        const message = messageInputDom.value.trim();
+
+        if (message === '') {
+            alert('メッセージを入力してください');
+            return;
+        }
+
+        // メッセージ入力を無効化して、送信中であることを示す
+        this.disabled = true;
+
+        // 現在の時刻を取得
+        const currentDateTime = getCurrentDateTime();
+
+        chatSocket.send(JSON.stringify({
+            'message': message,
+            'username': userName,
+            'room': roomName,
+            'date_added': currentDateTime // 送信時刻を含める
+        }));
+
+        messageInputDom.value = '';
+
+        // メッセージ入力を有効化
+        this.disabled = false;
+
+        return false;
+    };
+</script>
+
+
+{% endblock %}
+

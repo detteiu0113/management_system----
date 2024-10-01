@@ -1,0 +1,82 @@
+{% extends 'teacher/base.html' %}
+
+{% block title %}生徒一覧{% endblock %}
+
+{% block style %}
+<style>
+    table {
+        border-collapse: collapse;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        color: black;
+    }
+
+    th, td {
+        padding: 12px;
+        text-align: center;
+    }
+
+    thead {
+        background-color: #343a40;
+        color: #fff;
+    }
+
+    tbody tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row m-3">
+        <select class="form-select custom-select pe-0 " id="gradeFilter" name="grade">
+            <option value="">学年を絞り込む</option>
+            {% for grade in grades %}
+                <option value="{{ grade }}">{{ grade }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <table class="w-100">
+        <thead>
+            <tr>
+                <th>学年</th>
+                <th>生徒名</th>
+                <th>成績</th>
+                <th>情報</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in students %}
+                <tr class="border-bottom">
+                    <td>{{ student.get_grade_display }}</td>
+                    <td>{{ student }}</td>
+                    <td><a href="{% url 'teacher:document_select' student.pk %}" class="btn btn-sm btn-primary">確認</a></td>
+                    <td><a href="{% url 'teacher:student_notable_list' student.pk %}" class="btn btn-sm btn-primary">確認</a></td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        document.getElementById("gradeFilter").addEventListener("change", function() {
+            var selectedGrade = this.value;  // 選択された学年を取得
+            var rows = document.querySelectorAll("tbody tr");  // テーブルのすべての行を取得
+    
+            // 選択された学年と一致する行のみ表示する
+            rows.forEach(function(row) {
+                var gradeCell = row.querySelector("td:nth-child(1)"); // 学年が表示されているセル
+                if (selectedGrade === "" || gradeCell.textContent.trim() === selectedGrade) {
+                    row.style.display = ""; // 表示
+                } else {
+                    row.style.display = "none"; // 非表示
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,110 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}振込確認{% endblock %}
+{% block headline %}会計>振込確認{% endblock %}
+
+{% block content %}
+<form method="GET" action="">
+    <label for="month">月:</label>
+    <select name="month" id="month">
+        <option value="">全て</option>
+    </select>
+    <button type="submit">フィルター</button>
+</form>
+<div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>名前</th>
+                <th>年月</th>
+                <th>振込確認</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for paid_invoice in paid_invoices %}
+                <tr data-id="{{ paid_invoice.id }}" class="{% if not paid_invoice.is_paid %}table-danger{% else %}table-success{% endif %}">
+                    <td>{{ paid_invoice.parent }}</td>
+                    <td>{{ paid_invoice.date|date:'Y年m月'}}</td>
+                    <td>
+                        <button class="btn btn-primary complete-btn" data-id="{{ paid_invoice.id }}" data-is-paid="{{ paid_invoice.is_paid }}">完了</button>
+                        <button class="btn btn-danger incomplete-btn" data-id="{{ paid_invoice.id }}" data-is-paid="{{ paid_invoice.is_paid }}">未完了</button>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 月のセレクトボックスの要素を取得
+        var select = document.getElementById('month');
+        
+        // 1から12までの月を追加する
+        for (var i = 1; i <= 12; i++) {
+            // オプション要素を作成
+            var option = document.createElement('option');
+            option.value = i; // value属性に月の数字を設定
+            option.textContent = i + '月'; // テキストコンテンツに月の表示名を設定
+            select.appendChild(option); // セレクトボックスにオプションを追加
+        }
+
+        var dataId, isPaidInvoice;
+
+        document.querySelectorAll('.complete-btn').forEach(function(button) {
+            button.addEventListener('click', function() {
+                var dataId = button.getAttribute('data-id');
+                var row = document.querySelector('tr[data-id="' + dataId + '"]');
+                row.classList.remove('table-danger');
+                row.classList.add('table-success');
+                button.setAttribute('data-is-paid', 'True');
+                isPaidInvoice = true
+                sendData(dataId, isPaidInvoice);
+            });
+        });
+
+        document.querySelectorAll('.incomplete-btn').forEach(function(button) {
+            button.addEventListener('click', function() {
+                var dataId = button.getAttribute('data-id');
+                var row = document.querySelector('tr[data-id="' + dataId + '"]');
+                row.classList.remove('table-success');
+                row.classList.add('table-danger');
+                
+                button.setAttribute('data-is-paid', 'False');
+                isPaidInvoice = false
+                sendData(dataId, isPaidInvoice);
+            });
+        });
+
+        function sendData(dataId, isPaidInvoice) {
+            var csrfToken = "{{ csrf_token }}";
+            // データオブジェクトを作成
+            var data = {
+                'user_id': dataId,
+                'is_paid': isPaidInvoice,
+            };
+
+            var jsonData = JSON.stringify(data);
+            console.log(data);
+            // Ajaxリクエストを送信
+            $.ajax({
+                type: 'POST',
+                url: '{% url "owner:paid_invoice" %}',
+                data: {
+                    'csrfmiddlewaretoken': '{{ csrf_token }}',
+                    'json_data': jsonData,
+                },
+                success: function(response) {
+                    
+                },
+                error: function(xhr, status, error) {
+                    // エラーハンドリング
+                }
+            });
+        }
+
+    });
+</script>
+
+
+{% endblock %}

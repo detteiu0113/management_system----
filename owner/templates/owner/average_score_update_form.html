@@ -1,0 +1,30 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}平均点編集{% endblock %}
+{% block headline %}データ入力><a href="{% url 'owner:average_score_list' %}">学校テスト</a>>平均点編集{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card">
+        <div class="card-title bg-dark">
+            <h4 class="pt-3 pb-3 text-center text-white mb-0">平均点編集</h4>
+        </div>
+        <div class="card-body">
+            <form action="" method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit" id="submit" class="btn btn-secondary">送信</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    var submit = document.getElementById('submit')
+    submit.addEventListener('click', function() {
+        spinnerOverlay.classList.remove('d-none')
+    });
+</script>
+{% endblock %}

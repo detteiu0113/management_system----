@@ -1,0 +1,261 @@
+{% extends 'accounts/base.html' %}
+{% block title %}保護者サインアップ{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-dark">
+            <h3 class="text-white">保護者情報登録</h3>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>
+                    {{ form.last_name }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}</label>
+                    {{ form.first_name }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+                    {{ form.username }}
+                    {% if form.username.errors %}
+                    <div class="text-danger">
+                        {% for error in form.username.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <p id="error-message" style="color: red; display: none;">無効なメールアドレスです。</p>
+                </div>
+                <div class="form-group">
+                    <label for="id_password1">パスワード: {{ form.password1.help_text }}</label>
+                    <input type="password" name="password1" autocomplete="new-password" class="form-control" required="" id="id_password1">
+                    {% if form.password1.errors %}
+                        <div class="text-danger">
+                            {% for error in form.password1.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="id_password2">パスワード(確認用):</label>
+                    <input type="password" name="password2" autocomplete="new-password" class="form-control" required="" id="id_password2">
+                    {% if form.password2.errors %}
+                        <div class="text-danger">
+                            {% for error in form.password2.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.student_last_name.id_for_label }}">{{ form.student_last_name.label }}</label>
+                    {{ form.student_last_name }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.student_first_name.id_for_label }}">{{ form.student_first_name.label }}</label>
+                    {{ form.student_first_name }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.student_birth_date.id_for_label }}">{{ form.student_birth_date.label }}</label>
+                    {{ form.student_birth_date }}
+                </div>
+                <div id="gradeContainer"></div>
+                <div id="gradeErrorContainer" class="d-none">
+                    誕生日が無効です。
+                </div>
+                <div class="form-group" id="elementarySchoolForm">
+                    <label for="{{ form.student_elementary_school.id_for_label }}">{{ form.student_elementary_school.label }}</label>
+                    {{ form.student_elementary_school }}
+                </div>
+                <div class="form-group" id="middleSchoolForm">
+                    <label for="{{ form.student_school.id_for_label }}">{{ form.student_school.label }}</label>
+                    <select id="{{ form.student_school.id_for_label }}" name="{{ form.student_school.html_name }}" class="{{ form.student_school.field.widget.attrs.class }}">
+                    <option value="">中学校を選択してください</option>
+                        {% for value, text in form.student_school.field.choices %}
+                            <option value="{{ value }}"{% if form.student_school.value == form.student_school.initial %} selected{% endif %}>{{ text }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" id="highSchoolForm">
+                    <label for="{{ form.student_high_school.id_for_label }}">{{ form.student_high_school.label }}</label>
+                    {{ form.student_high_school }}
+                </div>
+                <button type="submit" class="btn btn-primary mt-3">登録</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // フォームの誕生日フィールドの要素を取得
+        var birthDateInput = document.getElementById('id_student_birth_date');
+
+        const elementarySchoolForm = document.getElementById('elementarySchoolForm');
+        const middleSchoolForm = document.getElementById('middleSchoolForm');
+        const highSchoolForm = document.getElementById('highSchoolForm');
+
+        const elementarySchoolInput = document.getElementById('id_student_elementary_school');
+        const middleSchoolSelect = document.getElementById('id_student_school');
+        const highSchoolInput = document.getElementById('id_student_high_school');
+        
+        const gradeContainer = document.getElementById('gradeContainer');
+        const gradeErrorContainer = document.getElementById('gradeErrorContainer');
+
+        const form = document.querySelector('form');
+        const requiredFields =  Array.from(document.querySelectorAll('[required]')).concat(birthDateInput);
+        const submitButton = form.querySelector('button[type="submit"]');
+
+        const emailInput = document.getElementById('{{ form.username.id_for_label }}');
+        const errorMessage = document.getElementById('error-message');
+        const lastNameInput = document.getElementById('{{ form.last_name.id_for_label }}');
+        lastNameInput.focus();
+
+        var MiddleSchoolSelect = document.getElementById('{{ form.student_school.id_for_label }}');
+        MiddleSchoolSelect.options[0].selected = true;
+
+        // メールアドレスが間違った形式の場合にエラーが出る
+        emailInput.addEventListener('blur', function() {
+            const emailValue = emailInput.value;
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+            if (!emailPattern.test(emailValue)) {
+                errorMessage.style.display='block';
+            } else {
+                errorMessage.style.display='none';
+            }
+        });
+
+        // 生徒の誕生日から学年を計算
+        birthDateInput.addEventListener('change', function() {
+            // 入力された誕生日を取得
+            var birthDate = new Date(this.value);
+            
+            // 今日の日付を取得
+            var today = new Date();
+            
+            // 現在の学年を計算
+            var currentYear = today.getFullYear();
+            if (today.getMonth() >= 3) { // 3月以降なら今年の年度
+                currentYear = today.getFullYear();
+            } else { // それ以外の場合は前の年の年度
+                currentYear = today.getFullYear() - 1;
+            }
+
+            // 誕生日から学年を計算
+            var birthYear = birthDate.getFullYear();
+            if (birthDate.getMonth() >= 4) { // 4月以降の誕生日の場合はその年の学年
+                birthYear = birthDate.getFullYear();
+            } else { // それ以外の場合は前の年の学年
+                birthYear = birthDate.getFullYear() - 1;
+            }
+            var ageInGrade = currentYear - birthYear - 6;
+            
+            // 過年度生は13で統一
+            if (ageInGrade >= 14) {
+                ageInGrade = 13;
+            }
+
+            gradeMapping = {
+                1: '小学1年生',
+                2: '小学2年生',
+                3: '小学3年生',
+                4: '小学4年生',
+                5: '小学5年生',
+                6: '小学6年生',
+                7: '中学1年生',
+                8: '中学2年生',
+                9: '中学3年生',
+                10: '高校1年生',
+                11: '高校2年生',
+                12: '高校3年生',
+                13: '高3以降',
+            }
+
+            gradeErrorContainer.classList.add('d-none')
+
+            if (1 <= ageInGrade && ageInGrade <= 6) {
+                elementarySchoolInput.required = true;
+                middleSchoolSelect.required = false;
+                highSchoolInput.required = false;
+            } else if (7 <= ageInGrade && ageInGrade <= 9) {
+                elementarySchoolInput.required = true;
+                middleSchoolSelect.required = true;
+                highSchoolInput.required = false;
+            } else if (10 <= ageInGrade) {
+                elementarySchoolInput.required = true;
+                middleSchoolSelect.required = true;
+                highSchoolInput.required = true;
+            } else {
+                gradeErrorContainer.classList.remove('d-none');
+                submitButton.disabled = true;
+                return;
+            }
+
+            if (today.getMonth() === 2) { // 3月の場合新をつける
+                gradeContainer.textContent = '新' + gradeMapping[ageInGrade];
+            } else {
+                gradeContainer.textContent = gradeMapping[ageInGrade];          
+            }
+        });
+
+        // 誕生日が有効かどうかの判別
+        function isBirthDateValid() {
+            var birthDate = new Date(birthDateInput.value);
+            if(isNaN(birthDate.getTime())) {
+                return false;
+            }
+            
+            var today = new Date();
+            var age = today.getFullYear() - birthDate.getFullYear();
+            var m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            
+            return age >= 6; // 誕生日が6歳以上の場合は有効
+        };
+
+        // バリデーション
+        function checkRequiredFields() {
+
+            let allFilled = true;
+
+            requiredFields.forEach(field => {
+                if (field.offsetParent !== null && !field.value.trim()) {
+                    allFilled = false;
+                }
+            });
+            
+            if(!isBirthDateValid()) {
+                allFilled = false;
+            } else if (elementarySchoolInput.required && !elementarySchoolInput.value.trim()) {
+                allFilled = false;
+            } else if (middleSchoolSelect.required && !middleSchoolSelect.value) {
+                allFilled = false;
+            } else if (highSchoolInput.required && !highSchoolInput.value.trim()) {
+                allFilled = false;
+            }
+
+            submitButton.disabled = !allFilled;
+        };
+
+        requiredFields.forEach(field => {
+            field.addEventListener('change', checkRequiredFields);
+            field.addEventListener('input', checkRequiredFields);
+        });
+
+        elementarySchoolInput.addEventListener('input', checkRequiredFields);
+        middleSchoolSelect.addEventListener('change', checkRequiredFields);
+        highSchoolInput.addEventListener('input', checkRequiredFields);
+        checkRequiredFields();
+    });
+</script>
+{% endblock %}

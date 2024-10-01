@@ -1,0 +1,92 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}教員情報{% endblock %}
+{% block headline %}教員情報{% endblock %}
+
+{% block style %}
+<style>
+    .card {
+        box-shadow: 0 6px 8px 0 rgba(0, 0, 0, 0.4);
+        transition: 0.3s;
+        width: 100%;
+        margin: auto;
+        margin-bottom: 20px;
+        border-radius: 5px; /* カードの角を丸くする */
+        overflow: hidden; /* 内容がカードの外にはみ出さないようにする */
+    }
+
+    .card:hover {
+        box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
+    }
+
+    .container {
+        padding: 2px 16px;
+        text-align: center; /* テーブルタイトルを真ん中に配置 */
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        border-spacing: 0;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        color: black;
+    }
+
+    th, td {
+        padding: 12px;
+        text-align: left;
+    }
+
+    thead {
+        background-color: #343a40;
+        color: #fff;
+    }
+
+    tbody tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }
+
+    a {
+        color: #007bff;
+        text-decoration: none;
+    }
+
+    a:hover {
+        color: #0056b3;
+        text-decoration: underline;
+    }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="container p-3">
+        <table id="example" cellspacing="0" width="100%">
+            <thead>
+            <tr>
+                <th>教員名</th>
+                <th>メールアドレス</th>
+                <th>入塾日</th>
+                <th>ステータス</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for teacher in teachers %}
+                <tr class="border-bottom">
+                    <td>{{ teacher }}</td>
+                    <td>{% if teacher.email %}{{ teacher.emial }}{% else %}未登録{% endif %}</td>
+                    <td>{{ teacher.date_joined.date }}</td>
+                    <td>
+                        <a href="{% url 'owner:teacher_status_update' teacher.pk %}">
+                            {% if teacher.teacher_profile.is_withdrawn %}退塾{% else %}勤務中{% endif %}
+                        </a>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

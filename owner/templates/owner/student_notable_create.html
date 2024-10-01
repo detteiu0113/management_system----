@@ -1,0 +1,32 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}特筆事項追加{% endblock %}
+{% block headline %}<a href="{% url 'owner:student_list' %}">生徒情報</a>><a href="{% url 'owner:student_detail' student.pk %}">個人情報</a>>特筆事項追加{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h4>{{ student }}の特筆事項</h4>
+    <form action="" method="post">
+        {% csrf_token %}
+        {{ form }}
+        <button type="submit" class="btn btn-primary mt-3" id="submit-button" disabled>送信</button>
+    </form>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    document.addEventListener('DOMContentLoaded', (event) => {
+        const textarea = document.querySelector('textarea[name="notable"]');
+        const submitButton = document.getElementById('submit-button');
+
+        textarea.addEventListener('input', () => {
+            if (textarea.value.trim().length > 0) {
+                submitButton.disabled = false;
+            } else {
+                submitButton.disabled = true;
+            }
+        });
+    });
+</script>
+{% endblock %}

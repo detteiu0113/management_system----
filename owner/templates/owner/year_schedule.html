@@ -1,0 +1,339 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}年間予定{% endblock %}
+{% block headline %}年間予定{% endblock %}
+
+{% block head %}
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/bootstrap5@6.1.11/index.global.min.js"></script>
+{% endblock %}
+
+{% block style %}
+<style>
+    .calendar a {
+        color: black!important;
+        text-decoration: none!important;
+    }
+
+    .fc-daygrid-day-frame {
+        height: 60px!important;
+    }
+
+    .fc-daygrid-day-number {
+        padding: 0!important;
+        font-size: 10px!important;
+    }
+
+    .fc-event-title-container {
+        height: 10px!important;
+    }
+
+    .fc-event-title {
+        height: 10px!important;
+        line-height: 10px!important;
+        font-size: 8px!important;
+        padding: 0!important;
+    }
+
+    .selected {
+        background-color: red;
+    }
+
+    .main-content {
+        width: 850px;
+        overflow-y: hidden;
+        height: auto!important;
+    }
+
+    .fc-multimonth-month:nth-child(4n) {
+        page-break-after: always!important; /* 印刷時に4の倍数のテーブルの後で改ページ */
+    }
+
+    @media print {
+        .calendar {
+            margin-top: auto;
+            margin-bottom: 0;
+            height: auto;
+        }
+
+        #sidebar {
+            display: none;
+        }
+
+        #printButton {
+            display: none;
+        }
+
+        #dobuleSelectButton {
+            display: none;
+        }
+
+        .main-content {
+            margin: 0;
+            padding: 0;
+        }
+
+        .headline-design {
+            display: none;
+        }
+
+        .fc-toolbar {
+            display: none!important;
+        }
+    }
+</style>
+{% endblock %}
+  
+{% block content %}
+<a href="" class="btn btn-secondary" id="printButton">印刷(A4縦向き推奨)</a>
+<button class="btn btn-primary" id="dobuleSelectButton">複数選択</button>
+<div class='calendar'></div>
+
+<div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="eventModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="eventModalLabel">イベントの詳細</h5>
+            </div>
+            <div class="modal-body">
+                <p id="eventName"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" id="deleteButton">削除</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 休校選択用のモーダルウィンドウ -->
+<div class="modal fade" id="closureModal" tabindex="-1" aria-labelledby="closureModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="closureModalLabel">休校またはイベントを作成</h5>
+            </div>
+            <div class="modal-body">
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="closureCheckbox">
+                <label class="form-check-label" for="closureCheckbox">
+                休校
+                </label>
+            </div>
+            <div class="mb-3">
+                <label for="eventTitle" class="form-label">イベント名</label>
+                <input type="text" class="form-control" id="eventTitle">
+            </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="confirmClosureBtn">選択</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="closeModalBtn">閉じる</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    var singleSelect = true;
+
+    document.addEventListener('DOMContentLoaded', function() {
+
+        document.getElementById('printButton').addEventListener('click', function() {
+            window.print();
+        });
+
+        // 今日の日付を取得
+        var today = new Date();
+        
+        // 年度開始を3月にするため、年度開始日を設定
+        var startOfYear = new Date(today.getFullYear() - 1, 2, 2);
+        
+        // 今の日付が1月か2月の場合は年度を1年前に設定
+        if (today.getMonth() === 0 || today.getMonth() === 1) {
+            startOfYear.setFullYear(startOfYear.getFullYear() - 1);
+        }
+        
+        // 年度終了日は次の年の2月末日とする
+        var endOfYear = new Date(startOfYear.getFullYear() + 3, 2, 0);
+
+        var startOfYearString = startOfYear.toISOString().split('T')[0]; // YYYY-MM-DD形式に変換
+        var endOfYearString = endOfYear.toISOString().split('T')[0]; // YYYY-MM-DD形式に変換
+
+        var calendarEl = document.querySelector('.calendar');
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            contentHeight: 'auto', // コンテンツの高さを自動調整
+            initialView: 'multiMonthYear',
+            initialDate: '{{ year }}-03-01', // 年の最初の日を指定
+            validRange: {
+                start: startOfYearString,
+                end: endOfYearString,
+            },
+            views: {
+                multiMonthYear: {
+                    duration: { months: 12 }, // 12ヶ月間表示する
+                },
+            },
+            headerToolbar: {
+                start: '',
+                center: 'title',
+                end: 'prev,next'
+            },
+            locale: 'ja',
+            events: {{ events|safe }},
+            eventOrder: "start",
+            selectable: true,
+            select: function(info) {
+                if (singleSelect) {
+                    // 選択された日付を取得
+                    var selectedDate = info.startStr;
+                    
+                    // 休校選択用のモーダルウィンドウを表示
+                    $('#closureModal').modal('show');
+                    
+                    // 選択された日付を一時的に保持
+                    $('#closureModal').data('selectedDate', selectedDate);
+                };
+            },
+            editable: true,
+            eventClick: function(info) {
+                var title = info.event.title;
+                var eventId = info.event.extendedProps.eventId
+                if (info.event.extendedProps.isFixed == 'true') {
+                    title = title + "(削除不可)"
+                    $('#deleteButton').hide();           
+                } else {
+                    $('#deleteButton').show();       
+                }
+                $('#eventName').text(title);   
+                $('#eventModal').modal('show');
+                $('#deleteButton').attr('data-event-id', eventId);
+                var eventId = info.event.extendedProps.eventId
+            },
+            dateClick: function(args) {
+                if (!singleSelect) {
+                    if (args.dayEl.classList.contains('selected')) {
+                        args.dayEl.classList.remove('selected');
+                        sessionStorage.removeItem(args.dateStr);
+                    } else {
+                        args.dayEl.classList.add("selected")
+                        sessionStorage.setItem(args.dateStr, 'true');
+                    }
+                }
+                return false;
+            },
+        });
+        calendar.render();
+
+        // 休校選択の確定ボタンがクリックされた場合の処理
+        $('#confirmClosureBtn').on('click', function() {
+            var selectedDate = $('#closureModal').data('selectedDate');
+            var isClosure = $('#closureCheckbox').is(':checked');
+            var eventTitle = $('#eventTitle').val() ;  // イベント名の入力値を取得
+            spinnerOverlay.classList.remove('d-none');
+            
+            // 休校が選択された場合、イベント名を'休校'に設定して送信
+            if (isClosure) {
+                if (eventTitle.trim() === '') {
+                    eventTitle = '休校';
+                };
+                createEvent(selectedDate, eventTitle, true);  // is_closureをtrueに設定
+            } else {
+                createEvent(selectedDate, eventTitle, false);  // is_closureをfalseに設定
+            };
+            
+            // モーダルウィンドウを閉じる
+            $('#closureModal').modal('hide');
+        });
+
+        function createEvent(date, title, isClosure) {
+            // キャンセルが選択された場合は何もしない
+            if (title === null) {
+                return;
+            }
+            // タイトルが空の場合は警告を表示して何もしない
+            if (title.trim() === '') {
+                alert('イベント名を入力してください。');
+                spinnerOverlay.classList.add('d-none');
+                return;
+            }
+
+            if (singleSelect) {
+                dates = [date];
+                console.log('!')
+            } else {
+                dates = []
+                document.querySelectorAll('.selected').forEach(function(element) {
+                    dates.push(element.dataset.date);
+                })
+            };
+
+            jsonData = {
+                'dates': dates,
+                'title': title,
+                'is_closure': isClosure,
+            }
+            
+            $.ajax({
+                type: "POST",
+                url: "{% url 'owner:year_schedule_add' %}",
+                data: {
+                    'csrfmiddlewaretoken': '{{ csrf_token }}', 
+                    'json_data': JSON.stringify(jsonData),
+                },
+                success: function(response) {
+                    location.reload();
+                },
+                error: function(xhr, textStatus, errorThrown) {
+                    spinnerOverlay.classList.add('d-none');
+                }
+            });
+        }
+
+        $('#deleteButton').on('click', function() {
+            var eventId = $(this).data('event-id');
+            spinnerOverlay.classList.remove('d-none');
+            $.ajax({
+                type: "POST",
+                url: "{% url 'owner:year_schedule_delete' %}",
+                data: {
+                    'csrfmiddlewaretoken': '{{ csrf_token }}', 
+                    'event_id': eventId,
+                },
+                success: function(response) {
+                    location.reload();
+                },
+                error: function(xhr, textStatus, errorThrown) {
+                    spinnerOverlay.classList.add('d-none');
+                },
+            });
+        })
+
+        const dobuleSelectButton = document.getElementById('dobuleSelectButton');
+        dobuleSelectButton.addEventListener('click', function handleClick() {
+            selectedDate = document.querySelectorAll('.selected');
+            // 日付が選ばれた場合
+            if (selectedDate.length > 0) {
+                $('#closureModal').modal('show');
+            } else if (!singleSelect) {
+                this.textContent = '複数選択';
+                singleSelect = true;
+            } else {
+                this.textContent = '選択終了'
+                singleSelect = false;
+            }
+        });
+        // キャンセル時の処理
+        document.getElementById('closeModalBtn').addEventListener('click', function() {
+            if (!singleSelect) {
+                document.querySelectorAll('.selected').forEach(function(element) {
+                    element.classList.remove('selected');
+                })
+                dobuleSelectButton.textContent = '複数選択';
+                singleSelect = true;
+            };
+        });
+    });
+</script>
+{% endblock %}

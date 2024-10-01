@@ -1,0 +1,116 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}PDF発行{% endblock %}
+{% block headline %}会計><a href="{% url 'owner:invoice_list' %}">請求書</a>>PDF発行{% endblock %}
+
+{% block style %}
+<style>
+    /* Custom styles */
+    .card {
+        border: 1px solid rgba(0, 0, 0, 0.125);
+        border-radius: 0.25rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    .card-header {
+        background-color: #007bff;
+        color: #fff;
+        border-bottom: none;
+    }
+    .card-title {
+        margin-bottom: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5 w-75">
+    <div class="card">
+        <div class="card-header bg-dark">
+            <h1 class="card-title">PDF発行</h1>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="row mb-3">
+                    <label for="year" class="col-sm-2 col-form-label">年</label>
+                    <div class="col-sm-10">
+                        <select id="year" name="year" class="form-control" required>
+                            <!-- Options will be added dynamically by JavaScript -->
+                        </select>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <label for="month" class="col-sm-2 col-form-label">月</label>
+                    <div class="col-sm-10">
+                        <select id="month" name="month" class="form-control" required>
+                            <!-- Options will be added dynamically by JavaScript -->
+                        </select>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <label for="student_id" class="col-sm-2 col-form-label">生徒名</label>
+                    <div class="col-sm-10">
+                        <select id="studen_id" name="student_id" class="form-select">
+                        <option value="">すべての生徒</option>
+                        {% for student in students %}
+                            <option value="{{ student.id }}">{{ student }}</option>
+                        {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <label for="billing_date" class="col-sm-2 col-form-label">製作日</label>
+                    <div class="col-sm-10">
+                        <input type="date" id="billing_date" name="billing_date" class="form-control">
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <label for="remarks" class="col-sm-2 col-form-label">備考欄</label>
+                    <div class="col-sm-10">
+                      <textarea id="remarks" name="remarks" class="form-control"></textarea>
+                    </div>
+                  </div>   
+                <div class="row">
+                    <div class="col-sm-10 offset-sm-2">
+                        <button type="submit" class="btn btn-dark">発行</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+    <script>
+        // Get the current year
+        const currentYear = new Date().getFullYear();
+        const yearSelect = document.getElementById('year');
+
+        // Loop through the range and create option elements
+        for (let year = currentYear - 3; year <= currentYear + 3; year++) {
+            const option = document.createElement('option');
+            option.value = year;
+            option.textContent = year + '年';
+            // Set default selected option to the current year
+            if (year === currentYear) {
+                option.selected = true;
+            }
+            yearSelect.appendChild(option);
+        };
+        
+        const currentMonth = new Date().getMonth() + 1; // Months are zero-indexed in JavaScript
+        const monthSelect = document.getElementById('month');
+
+        // Populate the month select element
+        for (let month = 1; month <= 12; month++) {
+            const option = document.createElement('option');
+            option.value = month;
+            option.textContent = month + '月';
+            if (month === currentMonth) {
+                option.selected = true;
+            }
+            monthSelect.appendChild(option);
+        };
+    </script>
+{% endblock %}

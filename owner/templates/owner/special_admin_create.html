@@ -1,0 +1,75 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}新規登録{% endblock %}
+{% block headline %}<a href="{% url 'owner:special_list' %}">講習授業</a>><a href="{% url 'owner:special_detail' pk %}">詳細</a>>新規登録{% endblock %}
+
+{% block style %}
+<style>
+.card {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    background-color: #343a40;
+    color: #fff;
+    border-bottom: 1px solid #343a40;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.card-body {
+    padding: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+label {
+    font-weight: bold;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="card">
+                    <div class="card-header text-center">受講追加</div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="form-group">
+                                <label for="id_student">生徒名</label>
+                                {{ form.student }}
+                            </div>
+                            <div class="form-group">
+                                <label for="id_periods">コマ数</label>
+                                {{ form.periods }}
+                            </div>
+                            <div class="form-group">
+                                <label for="id_subject">教科</label>
+                                {{ form.subject }}
+                            </div>
+                            {{ form.errors }}
+                            <button type="submit" class="btn btn-primary">保存</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

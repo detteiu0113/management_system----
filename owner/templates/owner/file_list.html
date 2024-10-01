@@ -1,0 +1,120 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}作成済みpdf{% endblock %}
+{% block headline %}会計>作成済みpdf{% endblock %}
+{% block style %}
+<style>
+    .file-item {
+        margin-bottom: 10px;
+        padding: 12px;
+        border-radius: 5px;
+        background-color: #f8f9fa;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .file-details {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .file-name {
+        font-weight: bold;
+    }
+
+    .file-date {
+        color: #6c757d;
+        margin-left: 20px;
+        
+    }
+
+    .delete-btn {
+        text-decoration: none;
+    }
+
+    .file-detete { 
+        margin-left: 20px;
+    }
+
+    .delete-btn:hover {
+        background-color: #c82333;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<form method="GET" class="row align-items-center mb-3">
+        <div class="col-6"></div>
+        <div class="col-2">
+            <select name="year" id="year" class="form-control">
+                <option value="">すべての年</option>
+            </select>
+        </div>
+        <div class="col-2">
+            <select name="month" id="month" class="form-control">
+                <option value="">すべての月</option>
+            </select>
+        </div>
+        <div class="col-2">
+            <button type="submit" class="btn btn-primary">検索</button>
+        </div>
+</form>
+
+<div class="container">
+    <div class="row">
+        <div class="col-8">
+            <ul class="list-unstyled">
+                {% for file in object_list %}
+                    <li class="file-item">
+                        <div class="file-details">
+                            <div class="file-name">
+                                <a href="{% url 'owner:file_detail' file.pk %}">{{ file }}</a>
+                            </div>
+                            <div class="file-date">
+                                作成日:{{ file.created_at }}
+                            </div>
+                            <div class="file-delete">
+                                <button class="btn btn-danger"><a href="{% url 'owner:file_delete' file.pk %}" class="delete-btn text-white">削除</a></button>
+                            </div>
+                        </div>
+                    </li>
+                {% empty %}
+                    <li>ファイルがありません。</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    function populateMonthSelect() {
+        select = document.getElementById("month");
+        for(var i = 1; i <= 12; i++) {
+            var option = document.createElement("option");
+            option.value = i;
+            option.text = i + "月";
+            select.add(option);
+        }
+    }
+
+    function populateYearSelect() {
+      var select = document.getElementById("year");
+      var currentYear = new Date().getFullYear();
+      var startYear = currentYear - 2;
+      var endYear = currentYear + 2;
+
+      for (var year = startYear; year <= endYear; year++) {
+          var option = document.createElement("option");
+          option.text = year + "年";
+          option.value = year;
+          select.add(option);
+      }
+    } 
+
+    document.addEventListener('DOMContentLoaded', function() {
+        populateMonthSelect();
+        populateYearSelect();
+    });
+</script>
+{% endblock %}

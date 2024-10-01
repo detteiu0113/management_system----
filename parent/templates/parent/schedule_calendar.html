@@ -1,0 +1,83 @@
+{% extends 'parent/base.html' %}
+
+{% block title %}受講カレンダー{% endblock %}
+
+{% block head %}
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/bootstrap5@6.1.11/index.global.min.js"></script>
+{% endblock %}
+
+{% block style %}
+    <style>
+        #calendar a {
+            color: black!important;
+            text-decoration: none!important;
+        }
+
+        /* カレンダーのスタイル */
+        #calendar {
+            width: 100%;
+            max-width: 100%;
+            max-height: 800px;
+        }
+
+        .fc-toolbar-title {
+            font-size: 16px!important;
+        }
+    </style>
+{% endblock %}
+  
+{% block content %}
+    <div class="d-flex justify-content-center">
+        <div id='calendar' style='width: 100%; max-height: 50%;' class=""></div>
+    </div>
+{% endblock %}
+
+{% block script %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 今日の日付を取得
+            var today = new Date();
+            
+            // 年度開始を3月にするため、年度開始日を設定
+            var startOfYear = new Date(today.getFullYear(), 2, 1);
+            
+            // 今の日付が1月か2月の場合は年度を1年前に設定
+            if (today.getMonth() === 0 || today.getMonth() === 1) {
+                startOfYear.setFullYear(startOfYear.getFullYear() - 1);
+            }
+            
+            // 年度終了日は次の年の2月末日とする
+            var endOfYear = new Date(startOfYear.getFullYear() + 1, 2, 0);
+            
+            // 年度の開始日は3月1日、年度終了日は来年の2月末日とする
+            var validRangeStart = startOfYear.getFullYear() + '-03-01';
+
+            var validRangeEnd = endOfYear.getFullYear() + '-03-01';
+            var calendarEl = document.getElementById('calendar');
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'listWeek',
+                views: {
+                    listWeek: {
+                        buttonText: '週間',
+                        allDayText: '',
+                    }
+                },
+                headerToolbar: {
+                    start: 'title',
+                    end: 'prev,next'
+                },
+                locale: 'ja',
+                noEventsContent: 'イベントはありません',
+                validRange: {
+                    start: validRangeStart,
+                    end: validRangeEnd
+                },
+                events: {{ events|safe }},
+                height: 'auto',
+                eventOrder: 'start',
+            });
+            calendar.render();
+        });
+    </script>
+{% endblock %}

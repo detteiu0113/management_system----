@@ -1,0 +1,21 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}請求書作成{% endblock %}
+{% block headline %}会計><a href="{% url 'owner:invoice_student_list' %}">請求書</a>><a href="{% url 'owner:invoice_list' pk %}">明細管理</a>>作成{% endblock %}
+
+{% block content %}
+<form action="" method="post">
+    {% csrf_token %}
+    {{ form }}
+    <button type="submit" id='submit' class="btn btn-primary mt-3">送信</button>
+</form>
+{% endblock %}
+
+{% block script %}
+<script>
+    var submit = document.getElementById('submit')
+    submit.addEventListener('click', function() {
+        spinnerOverlay.classList.remove('d-none')
+    });
+</script>
+{% endblock %}

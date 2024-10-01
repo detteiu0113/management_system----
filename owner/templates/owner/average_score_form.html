@@ -1,0 +1,80 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}平均点登録{% endblock %}
+{% block headline %}データ入力><a href="{% url 'owner:average_score_list' %}">学校テスト</a>>平均点登録{% endblock %}
+
+{% block style %}
+<style>
+    /* Custom CSS for form */
+    .form-card {
+        max-width: 500px;
+        margin: 0 auto;
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        max-height: auto;
+    }
+    .form-card h3 {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    .form-group label {
+        font-weight: bold;
+    }
+    .btn-primary {
+        width: 100%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="form-card">
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" id="submit" class="btn btn-primary">保存</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    function handleTestSelectChange() {
+        var testSelect = document.getElementById('id_test_name');
+        var customTestLabel = document.querySelector('label[for=id_custom_test_name]');
+        var customTestInput = document.getElementById('id_custom_test_name');
+
+        if (testSelect.value === 'テスト名を入力') {
+            customTestLabel.classList.remove('d-none');
+            customTestInput.classList.remove('d-none');
+        } else {
+            customTestLabel.classList.add('d-none');
+            customTestInput.classList.add('d-none');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        handleTestSelectChange();
+        
+        var testSelect = document.getElementById('id_test_name');
+        testSelect.addEventListener('change', handleTestSelectChange);
+
+        const jap = document.getElementById("id_jap");
+        const mat = document.getElementById("id_mat");
+        const soc = document.getElementById("id_soc");
+        const sci = document.getElementById("id_sci");
+        const eng = document.getElementById("id_eng");
+        const five_total = document.getElementById("id_five_total");
+
+        jap.required = true;
+        mat.required = true;
+        soc.required = true;
+        sci.required = true;
+        eng.required = true;
+        five_total.required = true;
+    });
+</script>
+{% endblock %}

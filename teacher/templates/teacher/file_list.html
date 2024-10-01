@@ -1,0 +1,26 @@
+{% extends 'teacher/base.html' %}
+
+{% block title %}ファイル{% endblock %}
+{% block headline %}ファイル{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        {% for file in files %}
+        <div class="col-md-4">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">{{ file }}</h5>
+                    {% if file.file %}
+                        <p class="card-text">アップロード日: {{ file.created_at }}</p>
+                        <a href="{% url 'teacher:file_detail' file.pk %}" class="btn btn-primary">確認</a>
+                    {% else %}
+                        <p class="card-text">No file uploaded</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

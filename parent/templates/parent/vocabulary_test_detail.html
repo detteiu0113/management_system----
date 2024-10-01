@@ -1,0 +1,57 @@
+{% extends 'parent/base.html' %}
+
+{% block title %}英単語テスト{% endblock %}
+
+{% block style %}
+<style>
+    p {
+        margin: 0;
+        padding: 0;
+    }    
+    th, td {
+        text-align: center;
+    }
+
+    @media screen and (max-width: 768px) {
+        .table {
+            white-space: nowrap;
+        }
+    } 
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    {% regroup test_results by category as category_list %}
+    {% for category in category_list %}
+    <div class="table-responsive mb-5">
+        <table class="table table-bordered">
+            <thead style="background-color: #343a40; color: #fff;">
+                <tr>
+                    <th>{{ category.list.0.get_category_display }}</th>
+                    <th>第1回</th>
+                    <th>第2回</th>
+                    <th>第3回</th>
+                    <th>第4回</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% regroup category.list by program as program_list %}
+                {% for program in program_list %}
+                <tr>
+                    <td style="height: 60px;" class="d-flex align-items-center justify-content-center">program{% cycle 1 2 3 4 5 6 7 8 9 10 %}</td>
+                    {% for result in program.list %}
+                    <td>{% if result.date %}
+                        <p>{{ result.date.month }}月{{ result.date.day }}日</p>
+                        <p>{{ result.score }} / {{ result.fullscore }}</p>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

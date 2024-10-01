@@ -1,0 +1,15 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}削除{% endblock %}
+{% block headline %}会計><a href="{% url 'owner:file_list' %}">作成済みpdf</a>>削除{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h4>ファイルの削除</h4>
+    <p>{{ object }}を削除してもよろしいですか?</p>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">削除</button>
+    </form>
+</div>
+{% endblock %}

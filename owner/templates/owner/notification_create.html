@@ -1,0 +1,22 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}通知作成{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center notification_container ">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-center bg-dark text-white">通知送信</div>
+                <div class="card-body">
+                    <form method="POST">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <button type="submit" class="btn btn-danger">送信</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

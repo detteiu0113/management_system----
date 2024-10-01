@@ -1,0 +1,33 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}編集{% endblock %}
+{% block headline %}<a href="">授業報告書</a>>編集{% endblock %}
+
+{% block content %}
+<div class="container">
+    {% if lesson.is_regular %}
+    <div class="card">
+        <div class="card-body">
+            <p class="card-text">生徒: {{ lesson.regular.student }}</p>
+            <p class="card-text">学年: {{ lesson.regular.get_grade_display }}</p>
+            <p class="card-text">科目: {{ lesson.regular.get_subject_display }}</p>
+            <p class="card-text">時間: {{ lesson.get_time_display }}</p>
+        </div>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body">
+            <p class="card-text">生徒: {{ lesson.special.student }}</p>
+            <p class="card-text">学年: {{ lesson.special.get_grade_display }}</p>
+            <p class="card-text">科目: {{ lesson.special.get_subject_display }}({{ lesson.special.special_lesson.name }})</p>
+            <p class="card-text">時間: {{ lesson.get_time_display }}</p>
+        </div>
+    </div>
+    {% endif %}
+    <form method="post" action="">
+        {% csrf_token %}
+        {{ form }}
+        <button type="submit" class="btn btn-secondary">送信</button>
+    </form>
+</div>
+{% endblock %}

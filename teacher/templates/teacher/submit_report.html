@@ -1,0 +1,121 @@
+{% extends 'teacher/base.html' %}
+
+{% block title %}報告書送信{% endblock %}
+{% block style %}
+<style>
+    @media(max-width: 414px) {
+
+    }
+    
+    h2 {
+    position: relative;
+    padding: 1rem .5rem;
+    }
+
+    h2:before,
+    h2:after {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    content: '';
+    background-image: -webkit-gradient(linear, right top, left top, from(#39a0a0), to(#51139c));
+    background-image: -webkit-linear-gradient(right, #30cfd0 0%, #330867 100%);
+    background-image: linear-gradient(to left, #30cfd0 0%, #330867 100%);
+    }
+
+    h2:before {
+    top: 0;
+    }
+
+    h2:after {
+    bottom: 0;
+    }
+    .card {
+      margin-bottom: 20px;
+      border-radius: 15px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-text {
+      font-size: 18px;
+      color: #212529;
+      margin-bottom: 8px;
+    }
+
+    h6 {
+        font-size: 12px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <div class="text-center mb-3"><h2>授業報告書送信フォーム</h2></div>
+        <div class="card">
+            <div class="card-body">
+                <p class="card-text">生徒: <span style="font-weight: bold;">{{ lesson.student }}</span></p>
+                <p class="card-text">学年: <span style="font-weight: bold;">{{ lesson.get_grade_display }}</span></p>
+                <p class="card-text">科目: <span style="font-weight: bold;">{{ lesson.get_subject_display }} {% if not lesson.is_regular and not lesson.is_temporaly %}({{ lesson.special.special_lesson.name }}){% endif %}</span></p>
+                <p class="card-text">日付: <span style="font-weight: bold">{{ lesson.date }}</span></p>
+                <p class="card-text">時間: <span style="font-weight: bold;">{% if lesson.is_rescheduled %}{{ lesson.get_rescheduled_time_display }}(振替授業){% else %}{{ lesson.get_time_display }}{% endif %}</span></p>
+            </div>
+        </div>
+        <form method="post" action="" class="p-4 border rounded">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="{{ form.homework.id_for_label }}" class="form-label" style="font-weight: bold;">{{ form.homework.label }}:</label>
+                {{ form.homework }}
+            </div>
+            <div class="mb-3">
+                <label for="{{ form.homework_done.id_for_label }}" class="form-label" style="font-weight: bold;">{{ form.homework_done.label }}:</label>
+                {{ form.homework_done }}
+            </div>
+            <div class="mb-3">
+                <label for="{{ form.unit.id_for_label }}" class="form-label" style="font-weight: bold;">{{ form.unit.label }}:</label>
+                {{ form.unit }}
+            </div>
+            <div class="mb-3">
+                <label for="{{ form.behavior.id_for_label }}" class="form-label" style="font-weight: bold;">{{ form.behavior.label }}:</label>
+                {{ form.behavior }}
+            </div>
+            <div class="mb-3">
+                <label for="{{ form.weakness.id_for_label }}" class="form-label" style="font-weight: bold;">{{ form.weakness.label }}:</label>
+                {{ form.weakness }}
+            </div>
+            <div class="d-flex justify-content-center">
+                <button type="submit" class="btn btn-primary">確認して送信</button>
+            </div>
+            <div class="mt-4">
+                <h6>※誤送信や内容の修正を行いたい場合は、編集のフォームで編集して再送信してください。</h5>
+            </div>
+        </form>        
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var form = document.querySelector('form');
+    
+            form.addEventListener('submit', function(event) {
+                var inputs = form.querySelectorAll('input[type="text"], textarea');
+    
+                for (var i = 0; i < inputs.length; i++) {
+                    if (inputs[i].value.trim() === '') {
+                        event.preventDefault(); // フォームの送信を中止
+    
+                        // エラーメッセージを表示
+                        alert('空白の項目があります。正しい値を入力してください。');
+    
+                        // エラーのある項目をハイライト
+                        inputs[i].classList.add('is-invalid');
+    
+                        // フォーム送信ボタンを有効にする
+                        document.querySelector('button[type="submit"]').disabled = false;
+    
+                        return;
+                    }
+                }
+            });
+        });
+    </script>
+{% endblock %}

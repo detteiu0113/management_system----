@@ -1,0 +1,237 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}請求書{% endblock %}
+{% block headline %}会計><a href="{% url 'owner:invoice_list' %}">請求書</a>>新規作成{% endblock %}
+
+{% block style %}
+<style>
+    /* Custom styles */
+    .container {
+        margin-top: 20px;
+    }
+
+    .search-form {
+        margin-bottom: 20px;
+    }
+    .student-item {
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        margin-bottom: 10px;
+        }
+    .student-item:hover {
+        background-color: #f8f9fa;
+        }
+    #add-invoice-form {
+        display: block;
+        max-width: 400px;
+        margin: 0 auto;
+    }
+    .card {
+        border: 1px solid rgba(0, 0, 0, 0.125);
+        border-radius: 0.25rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    .card-header {
+        background-color: #007bff;
+        color: #fff;
+        border-bottom: none;
+    }
+    .card-title {
+        margin-bottom: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col">
+            <button id="add-checkbox" class="btn btn-primary">生徒を選択</button>
+        </div>
+        <div class="col">
+            <select class="form-select" id="gradeFilter" name="grade">
+                <option value="">学年を絞り込む</option>
+                {% for grade in grades %}
+                <option value="{{ grade.0 }}">{{ grade.1 }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    <ul class="list-group student-list mt-3" id="student-list">
+      {% for student in students %}
+        <li class="list-group-item student-item" data-grade="{{ student.grade }}">
+          <input type="checkbox" class="student-checkbox d-none" value="{{ student.id }}">
+          {{ student }}
+        </li>
+      {% endfor %}
+    </ul>
+    <div id="add-invoice-form" style="display: none; margin-top: 20px;">
+        <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">請求書項目を追加</h2>
+        </div>
+        <div class="card-body">
+            <form id="invoice-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="cost_name">コスト名:</label>
+                <input type="text" class="form-control" id="cost_name" name="cost_name" required>
+            </div>
+            <div class="form-group">
+                <label for="price">価格:</label>
+                <input type="number" class="form-control" id="price" name="price" required>
+            </div>
+            <div class="form-group">
+                <label for="date">日付:</label>
+                <input type="date" class="form-control" id="date" name="date" required>
+            </div>
+            <button type="submit" class="btn btn-primary mt-3">追加</button>
+            </form>
+        </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block script %}
+<script>
+    document.getElementById("gradeFilter").addEventListener("change", function() {
+        var selectedGrade = this.value;
+        var studentItems = document.querySelectorAll('.student-item');
+        studentItems.forEach(function(item) {
+            if (selectedGrade === "" || item.dataset.grade === selectedGrade) {
+                item.style.display = "block";
+            } else {
+                item.style.display = "none";
+            }
+        });
+    });
+
+    document.getElementById("invoice-form").addEventListener("submit", function(event) {
+        event.preventDefault();
+        var costName = document.getElementById("cost_name").value;
+        var price = document.getElementById("price").value;
+        var date = document.getElementById("date").value;
+        var checkboxes = document.querySelectorAll('.student-checkbox:checked');
+        var selectedStudents = [];
+        checkboxes.forEach(function(checkbox) {
+            selectedStudents.push(checkbox.value);
+        });
+
+        spinnerOverlay.classList.remove('d-none')
+
+        // Ajaxリクエストを送信
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "{% url 'owner:invoice_create' %}", true);
+        xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+
+        xhr.onload = function() {
+            var response = JSON.parse(xhr.responseText);
+            if (response.redirect_url) {
+                window.location.href = response.redirect_url;
+            }
+        }
+        
+        // エラー時の処理
+        xhr.onerror = function() {
+
+        };
+
+        var csrftoken = getCSRFToken(); // CSRFトークンを取得する関数の呼び出し
+        xhr.setRequestHeader("X-CSRFToken", csrftoken); // CSRFトークンをリクエストヘッダーに追加
+
+        xhr.send(JSON.stringify({
+            costName: costName,
+            price: price,
+            date: date,
+            selectedStudents: selectedStudents
+        }));
+
+        
+        
+        var addForm = document.getElementById("add-invoice-form");
+        addForm.style.display = "none";
+        document.getElementById("add-checkbox").innerText = "生徒を選択";
+        document.getElementById("invoice-form").reset();
+
+        // 追加ボタンをクリックした後、チェックボックスを非表示にする
+        var students = document.querySelectorAll('.student-checkbox');
+        students.forEach(function(student) {
+            student.classList.add('d-none');
+            student.checked = false;
+            student.disabled = false;
+        });
+
+        var student_list = document.getElementById('student-list');
+        student_list.style.display = 'block';
+    });
+
+    // CSRFトークンを取得する関数
+    function getCSRFToken() {
+        var csrfTokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (csrfTokenElement) {
+            return csrfTokenElement.value;
+        } else {
+            console.error('CSRFトークンが見つかりませんでした。');
+            return null;
+        }
+    }
+
+    var addCheckboxBtn = document.getElementById("add-checkbox");
+
+    // 一括追加のクリックイベントを処理する関数
+    document.getElementById("add-checkbox").addEventListener("click", function() {
+        var addForm = document.getElementById("add-invoice-form");
+        var studentList = document.getElementById("student-list");
+        var students = document.querySelectorAll('.student-checkbox');
+        var checkedStudents = [];
+
+        if (addCheckboxBtn.innerText === "生徒を選択") {
+            students.forEach(function(student) {
+                student.classList.remove('d-none');
+            });
+            addCheckboxBtn.innerText = "フォームへ";
+            addCheckboxBtn.disabled = true;
+        } else if (addCheckboxBtn.innerText === "フォームへ") {
+            addForm.style.display = "block";
+            addCheckboxBtn.innerText = "中止";
+            studentList.style.display = "none";
+            students.forEach(function(student) {
+                student.disabled = true;
+            })
+        } else if (addCheckboxBtn.innerText === "中止") {
+            addCheckboxBtn.innerText = "生徒を選択";
+            addForm.style.display = "none";
+            studentList.style.display = "block";
+            students.forEach(function(student) {
+                student.disabled = false;
+                student.classList.add('d-none');
+                if (checkedStudents.includes(student)) {
+                    student.checked = true;
+                } else {
+                    student.checked = false;
+                }
+            });
+        }
+    });
+
+    var checkboxes = document.querySelectorAll('.student-checkbox');
+    var anyChecked = false;
+    for (let i = 0; i < checkboxes.length; i++) {
+        const checkbox = checkboxes[i];
+        checkbox.addEventListener("click", function() {
+        if (checkbox.checked) {
+            addCheckboxBtn.disabled = false;
+        } else {
+            for (let i = 0; i < checkboxes.length; i++) {
+            const checkbox = checkboxes[i];
+            if (checkbox.checked) {
+                addCheckboxBtn.disabled = false;
+                break;
+            }
+            addCheckboxBtn.disabled = true;
+            }
+        }
+        });
+    }
+</script>
+{% endblock %}

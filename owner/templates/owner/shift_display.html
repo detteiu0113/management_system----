@@ -1,0 +1,113 @@
+{% extends 'owner/base.html' %}
+{% load custom_tags %}
+
+{% block title %}シフト閲覧{% endblock %}
+{% block headline %}<a href="{% url 'owner:shift_select' %}">シフト管理</a>>{{ year }}年第{{ week }}週{% endblock %}
+
+{% block style %}
+<style>
+    td {
+        padding: 0!important;
+    }
+
+    hr {
+        margin: 0!important;
+        color: white;
+    }
+
+    .td-row-upper, .td-row-lower {
+        margin: 0!important;
+        width: 100%;
+    }
+
+    .td-row-lower {
+        border: 1px black solid;
+        height: 28px;
+    }
+
+    .td-col {
+        border: 1px black solid;
+        padding: 0!important;
+        height: 52px;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+    <nav class="d-flex justify-content-center">
+        <ul class="pagination">
+            {% for date in dates %}
+                <li class="page-item"><a class="page-link {% if forloop.counter == day %}active{% endif %}" href="{% url 'owner:shift_display' year week forloop.counter %}">{{ date }}</a></li>
+            {% endfor %}
+        </ul>
+    </nav>
+    <div class="container-fluid">
+    {% if shifts %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th></th>
+                    {% for time in time_choices %}
+                    <th class="text-center">
+                        {{ time }}
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+            {% regroup shifts by room as room_list %}
+            {% for room in room_list %}
+                    <tr>
+                        <th class="text-center">{{ room.grouper }}</th>
+                        {% for shift in room.list %}
+                        <td>
+                            <div class="row td-row-upper">
+                                {% for i in '1234' %}
+                                {% get_lesson shift i as lesson_obj %}
+                                <div class="col-6 td-col text-center">
+                                    <div class="w-100 h-100 
+                                    {% if not lesson_obj %}
+                                        bg-white
+                                    {% elif lesson_obj.is_rescheduled %}
+                                        bg-warning
+                                    {% elif lesson_obj.is_temporaly %}
+                                        bg-secondary
+                                    {% elif lesson_obj.is_regular %}
+                                        bg-white
+                                    {% else %}
+                                        bg-info
+                                    {% endif %}
+                                        ">
+                                        <div class="d-flex justify-content-center">
+                                            <span>
+                                                {{ lesson_obj.student }}
+                                            </span>
+                                        </div>
+                                        <span>
+                                            {{ lesson_obj.get_grade_display }}
+                                            {{ lesson_obj.get_subject_display }}
+                                            
+                                        </span>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>                                                           
+                            <div class="row td-row-lower justify-content-center">
+                                <div class="d-flex justify-content-center {% if not shift.teacher_shift %}{% if shift.lessons.lesson1 or shift.lessons.lesson2 or shift.lessons.lesson3 or shift.lessons.lesson4 %}bg-danger{% endif %}{% endif %}">
+                                    {% if shift.teacher_shift.is_fixed %}
+                                    <span>{{ shift.teacher_shift.fixed_shift.teacher }}</span>
+                                    {% else %}
+                                    <span>{{ shift.teacher_shift.temporaly_shift.teacher }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        {% endfor %}
+                    </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <h1 class="text-center" style="color: red; font-size: 80px; margin-top: 250px;">休校日</h1>
+    {% endif %}
+</div>
+{% endblock %}

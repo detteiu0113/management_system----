@@ -1,0 +1,127 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}ホーム{% endblock %}
+{% block headline %}ホーム{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">通知センター(過去30日間の通知を表示)</h5>
+            <ul id="notificationList">
+                {% for notification in notifications %}
+                    <li class="d-flex align-items-center">
+                        <span>{{ notification }}</span>
+                        <form action="" method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="pk" value="{{ notification.pk }}">
+                        </form>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    <div class="card mt-3">
+        <div class="card-body">
+            <h5 class="card-title">承認待ちのユーザー</h5>
+            <ul>
+                {% for user in customusers %}
+                <li class="d-flex justify-content-between align-items-center">
+                    <p class="card-text mb-3">
+                        {% if user.is_teacher %}講師{% elif user.is_parent %}保護者{% endif %}: {{ user.last_name }} {{ user.first_name }}
+                    </p>
+                    <div>
+                        <form action="{% url 'owner:user_activate' user.pk %}" method="post" class="approval-form" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="button" class="btn btn-success btn-sm approval-button">承認</button>
+                        </form>
+                        <form action="{% url 'owner:user_delete' user.pk %}" method="delete" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm">削除</button>
+                        </form>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="confirmationModal" tabindex="-1" aria-labelledby="confirmationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmationModalLabel">確認</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">本当に承認しますか？</div>
+                <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                <button id="confirmButton" type="button" class="btn btn-primary">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    const socket = new WebSocket('wss://{{ HOST_IP }}/ws/notifications/');
+    
+    const notificationList = document.getElementById('notificationList');
+
+    socket.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        if (data.type == 'message') {
+            const li = document.createElement('li');
+            li.textContent = data.message;
+            notificationList.appendChild(li);
+        };
+    };
+
+    var approvalButton = document.querySelectorAll('.approval-button');
+    var confirmationModal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+    var confirmButton = document.getElementById('confirmButton');
+
+    approvalButton.forEach(function(button) {
+        button.addEventListener('click', function() {
+            confirmationModal.show();
+        });
+    });
+
+    confirmButton.addEventListener('click', function() {
+        document.querySelector('.approval-form').submit();
+        confirmButton.disabled = true;
+    });
+
+    document.querySelectorAll('.approval-button').forEach(function (button) {
+        // 継続ボタンにイベントを追加
+        button.addEventListener('click', function(event) {
+            event.preventDefault();
+
+            // モーダルを作成
+            var confirmationModal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+            confirmationModal.show();
+            
+            // 送信のイベントを追加
+            var confirmButton = document.getElementById('confirmButton');
+            confirmButton.onclick = function () {
+                confirmationModal.hide();
+                // バックドロップを手動で削除
+                document.querySelector('.modal-backdrop').remove();
+
+                var form = button.closest('form');
+                form.submit();
+            };
+
+            // キャンセルボタンのイベントを追加
+            var cancelButton = document.getElementById('cancelButton');
+            cancelButton.onclick = function () {
+                confirmationModal.hide();
+                
+                // バックドロップを手動で削除
+                document.querySelector('.modal-backdrop').remove();
+            };
+        });
+    });
+</script>
+{% endblock %}

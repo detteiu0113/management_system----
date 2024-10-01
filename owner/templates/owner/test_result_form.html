@@ -1,0 +1,176 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}テスト結果一括入力{% endblock %}
+{% block headline %}データ入力><a href="{% url 'owner:average_score_list'%}">学校テスト</a>>テスト結果一括入力{% endblock %}
+
+{% block style %}
+<style>
+    /* テーブルのスタイルを設定 */
+    #myTable {
+        background-color: #fff; /* テーブルの背景色を白に設定 */
+        color: #000; /* テーブルのテキスト色を黒に設定 */
+        border-radius: 10px; /* テーブルの角を丸くする */
+        border: 1px solid black;
+    }
+    
+    /* テーブルのヘッダーのスタイルを設定 */
+    #myTable thead th {
+        background-color: #343a40 !important; /* ヘッダーの背景色を指定 */
+        color: #fff; /* ヘッダーのテキスト色を白に設定 */
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="table-responsive">
+        <table id="myTable" class="table table-striped">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th></th>
+                    <th class="text-center">国語</th>
+                    <th class="text-center">数学</th>
+                    <th class="text-center">社会</th>
+                    <th class="text-center">理科</th>
+                    <th class="text-center">英語</th>
+                    <th class="text-center">5計</th>
+                    <th class="text-center">音楽</th>
+                    <th class="text-center">美術</th>
+                    <th class="text-center">体育</th>
+                    <th class="text-center">技術</th>
+                    <th class="text-center">9計</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+            </tbody>
+        </table>
+    </div>
+</div>
+<button id="editCompleteBtn" class="btn btn-primary post-btn">編集完了</button> <!-- 編集完了ボタン -->
+{% endblock %}
+
+{% block script %}
+<script>
+    const jsonData = {{ json_data|safe }};
+
+    var tableBody = document.getElementById('tableBody');
+
+    jsonData.test_results.forEach(function(testResult) {
+        var row = document.createElement('tr');
+        
+        // セルを作成して追加
+        var th1 = document.createElement('th');
+        th1.setAttribute('rowspan', '2');
+        th1.classList.add('text-center', 'align-middle', 'test');
+        th1.textContent = testResult.student_name;
+        row.appendChild(th1);
+        
+        var th2 = document.createElement('th');
+        th2.classList.add('text-center');
+        th2.textContent = '点数';
+        row.appendChild(th2);
+        
+        // 点数のセルを追加
+        var cellCount = 0;
+        for (var key in testResult) {
+            if (key !== 'student_name' && key!== 'student_id' && !key.endsWith('_rank')) {
+                var td = document.createElement('td');
+                td.classList.add('text-center');
+                var input = document.createElement('input');
+                input.type = 'number';
+                input.classList.add('form-control');
+                input.setAttribute('data-key', key)
+                input.value = testResult[key] !== null ? testResult[key] : ''; // nullの場合は空文字列をセット
+                if (cellCount === 5) { // 6番目のセルをスキップ
+                    var emptyCell = document.createElement('td');
+                    row.appendChild(emptyCell); // 6番目のセルの後に空白のセルを挿入
+                }
+                td.appendChild(input);
+                row.appendChild(td);
+                cellCount++;
+            } else {
+                if (cellCount === 9) { // 6番目のセルをスキップ
+                    var emptyCell = document.createElement('td');
+                    row.appendChild(emptyCell); // 6番目のセルの後に空白のセルを挿入
+                    cellCount++;
+                }
+            }
+        }
+        tableBody.appendChild(row);
+        
+        // 順位の行を追加
+        var rankRow = document.createElement('tr');
+
+        // 順位セルを追加
+        var rankTh = document.createElement('th');
+        rankTh.classList.add('text-center');
+        rankTh.textContent = '順位';
+        rankRow.appendChild(rankTh);
+
+        for (var key in testResult) {
+            if (key.endsWith('_rank') && key !== 'student_id' && key !== 'student_name') {
+                var td = document.createElement('td');
+                td.classList.add('text-center');
+                var input = document.createElement('input');
+                input.type = 'number';
+                input.classList.add('form-control');
+                input.setAttribute('data-key', key)
+                input.value = testResult[key] !== null ? testResult[key] : ''; // nullの場合は空文字列をセット
+                td.appendChild(input);
+                rankRow.appendChild(td);
+            }
+        }
+        tableBody.appendChild(rankRow);
+        row.setAttribute('data-student', testResult.student_id)
+        rankRow.setAttribute('data-student', testResult.student_id)
+    });
+
+    document.getElementById('editCompleteBtn').addEventListener('click', function() {
+        var jsonData = [];
+        var rows = document.querySelectorAll('tbody > tr');
+        rows.forEach(function(row) {
+            var studentId = row.dataset.student;
+            var testResult = {};
+            var inputs = row.querySelectorAll('input');
+            inputs.forEach(function(input) {
+                var key = input.dataset.key;
+                var value = input.value.trim(); // 空白を削除して値を取得
+                testResult[key] = value === '' ? null : value;
+            });
+            
+            var existingEntryIndex = jsonData.findIndex(function(entry) {
+                return entry.student_id === studentId;
+            })
+            if (existingEntryIndex !== -1) {
+                Object.assign(jsonData[existingEntryIndex].test_result, testResult)
+            } else {
+                var entry = {
+                student_id: studentId,
+                test_result: testResult
+            };
+            jsonData.push(entry)
+        }});
+
+        spinnerOverlay.classList.remove('d-none')
+
+        // Ajaxリクエストを送信
+        $.ajax({
+            type: "POST",
+            url: "{% url 'owner:test_result_form' pk %}",
+            data: {
+                'csrfmiddlewaretoken': '{{ csrf_token }}',
+                'json_data': JSON.stringify(jsonData),
+            },
+            success: function(response) {
+                // 成功した場合の処理を記述
+                window.location.href = response.redirect_url;  // リダイレクトする場合
+            },
+            error: function(xhr, textStatus, errorThrown) {
+                // 処理を追加
+            }
+            
+        })
+    });
+</script>
+{% endblock %}

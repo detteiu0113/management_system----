@@ -1,0 +1,17 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Delete Python Migration Files",
+            "type": "shell",
+            "command": "powershell.exe",
+            "args": [
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "${workspaceFolder}\\delete_migrations.ps1"
+            ],
+            "problemMatcher": []
+        }
+    ]
+}

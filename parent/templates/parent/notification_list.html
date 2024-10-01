@@ -1,0 +1,98 @@
+{% extends 'parent/base.html' %}
+{% block head %}
+<style>
+    .notification-filters {
+  margin-bottom: 20px;
+}
+
+.filter-button {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 20px;
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+.notification-cards {
+  display: flex;
+  flex-direction: column; /* カードを縦に並べる */
+  gap: 20px;
+}
+
+.notification-card {
+  background-color: #fff;
+  border: 2px solid transparent; /* 赤線の下に隠れています */
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+  position: relative; /* アイコンを配置するため */
+}
+
+.notification-card.priority {
+  border-color: red; /* 重要なメッセージのカードに赤線を付ける */
+}
+
+.priority-badge {
+  color: red;
+  top: 10px;
+  left: 10px;
+}
+
+.unread {
+  border: 2px solid #007bff;
+}
+
+.read-notification-form {
+  margin-top: 10px;
+}
+
+.read-notification-button {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.read-notification-button:hover {
+  background-color: #0056b3;
+}
+
+</style>
+{% endblock %}
+{% block content %}
+  <h2>通知センター</h2>
+  <form method="GET" action="{% url 'parent:notification_list' user.parent_profile.current_student.pk %}" class="notification-filters">
+    <button type="submit" name="is_priority" value="true" class="filter-button">重要</button>
+    <button type="submit" name="is_read" value="true" class="filter-button">確認済み</button>
+    <button type="submit" name="is_read" value="false" class="filter-button">新規メッセージ</button>
+  </form>
+  <div class="notification-cards">
+    {% for notification in notifications %}
+      <div class="notification-card {% if notification.is_priority %}priority{% endif %} {% if not notification.is_read %}unread{% endif %}">
+        {% if notification.is_priority %}
+          <span class="priority-badge"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-exclamation-triangle" viewBox="0 0 16 16">
+            <path d="M7.938 2.016A.13.13 0 0 1 8.002 2a.13.13 0 0 1 .063.016.15.15 0 0 1 .054.057l6.857 11.667c.036.06.035.124.002.183a.2.2 0 0 1-.054.06.1.1 0 0 1-.066.017H1.146a.1.1 0 0 1-.066-.017.2.2 0 0 1-.054-.06.18.18 0 0 1 .002-.183L7.884 2.073a.15.15 0 0 1 .054-.057m1.044-.45a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767z"/>
+            <path d="M7.002 12a1 1 0 1 1 2 0 1 1 0 0 1-2 0M7.1 5.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0z"/>
+          </svg>
+          </span>
+        {% endif %}
+        <strong>{{ notification.message }}</strong>
+        {% if not notification.is_read %}
+        <form method="POST" action="{% url 'parent:notification_list' user.parent_profile.current_student.pk %}" class="read-notification-form">
+          {% csrf_token %}
+          <input type="hidden" name="notification_id" value="{{ notification.pk }}">
+          <button type="submit" class="read-notification-button">確認する</button>
+        </form>
+        {% endif %}
+      </div>
+    {% empty %}
+      <div class="notification-card empty">
+        <p>メッセージがありません</p>
+      </div>
+    {% endfor %}
+  </div>
+{% endblock %}

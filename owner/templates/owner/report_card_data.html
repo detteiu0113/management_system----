@@ -1,0 +1,152 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}一括入力{% endblock %}
+{% block headline %}データ入力><a href="{% url 'owner:report_card_semester' %}">通知簿</a>>一括入力{% endblock %}
+
+{% block head %}
+<style>
+    .report-card-table {
+        border: 2px solid black;
+    }
+    .report-card-table td {
+        width: 10%; /* Set the width of td */
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="col-md-3 d-flex justify-content-end ms-auto mb-3">
+        <select class="form-select custom-select pe-0 " id="gradeFilter" name="grade">
+            <option value="">学年を絞り込む</option>
+            {% for grade in grades %}
+                <option value="{{ grade }}">{{ grade }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div id="report-card-container" class="table-responsive">
+        <!-- Table will be generated here -->
+    </div>
+    <button class="btn btn-primary mt-3 post-btn" id="save-button">保存</button>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const data = {{ json_str|safe }};
+        const SUBJECT_CHOICES = {{ subject_choices | safe }};
+        const studentData = {{ students | safe }};
+
+        // テーブルを生成する関数
+        function createReportCardTable() {
+            const tableContainer = document.getElementById('report-card-container');
+            const table = document.createElement('table');
+            table.classList.add('table', 'table-bordered', 'table-striped', 'report-card-table');
+
+            let thead = document.createElement('thead');
+            thead.classList.add('table-dark');
+            let headerRow = document.createElement('tr');
+            headerTh = document.createElement('th')
+            headerTh.textContent = "生徒名"
+            headerRow.appendChild(headerTh)
+
+            SUBJECT_CHOICES.forEach(subject => {
+                let subjectHeader = document.createElement('th');
+                subjectHeader.textContent = subject[1];
+                subjectHeader.scope = 'col';
+                headerRow.appendChild(subjectHeader);
+            });
+
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
+            // 各生徒の行を追加
+            for (let i = 0; i < studentData.length; i++) {
+                const student = studentData[i];
+                const studentRow = document.createElement('tr');
+                const studentNameCell = document.createElement('td');
+                studentNameCell.textContent = student[1];
+                studentRow.appendChild(studentNameCell);
+
+                for (let subject of SUBJECT_CHOICES) {
+                    const subjectCell = document.createElement('td');
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.classList.add('form-control'); // Bootstrap form control class
+                    input.name = 'grade';
+                    input.value = data[student[0]][subject[0]]["value"] || ''; // 値が存在しない場合は空文字を設定
+                    subjectCell.appendChild(input);
+                    subjectCell.setAttribute('data-student-id', student[0]); // 生徒 ID をセルに追加
+                    subjectCell.setAttribute('data-subject-id', subject[0]); // 科目 ID をセルに追加
+                    studentRow.appendChild(subjectCell);
+                }
+                table.appendChild(studentRow);
+            }
+            tableContainer.appendChild(table);
+        }
+
+        // 保存ボタンを押した際の処理
+        document.getElementById('save-button').addEventListener('click', function () {
+            var saveBtn = document.getElementById('save-button');
+            saveBtn.disabled = true;
+            // フォームデータを保存するオブジェクトを初期化
+            let formData = {};
+
+            // テーブル内の各セルからデータを収集してオブジェクトに追加
+            // 各生徒のデータを反復処理する
+            studentData.forEach(student => {
+                const studentId = student[0];
+
+                // 対応する生徒のセルのみを取得する
+                const studentCells = document.querySelectorAll(`[data-student-id="${studentId}"]`);
+
+                // 生徒のセルからデータを収集する
+                studentCells.forEach(cell => {
+                    let subjectId = cell.getAttribute('data-subject-id');
+
+                    // セル内の input[type="text"] 要素を取得
+                    let inputText = cell.querySelector('input[type="text"]');
+
+                    // input[type="text"] 要素が存在する場合、その値を取得し、存在しない場合は null を代入
+                    let value = inputText ? inputText.value : '';
+
+                    if (!formData[studentId]) {
+                        formData[studentId] = {};
+                    }
+
+                    formData[studentId][subjectId] = value;
+                });
+            });
+
+            // フォームデータをJSON形式に変換
+            const jsonData = JSON.stringify(formData);
+
+            spinnerOverlay.classList.remove('d-none')
+
+            // Ajaxリクエストを送信
+            $.ajax({
+                type: "POST",
+                url: "{% url 'owner:report_card_form' semester %}",
+                data: {
+                    'csrfmiddlewaretoken': '{{ csrf_token }}', // CSRFトークンを含める（Djangoテンプレートタグを使用）
+                    'json_data': jsonData,
+                },
+                success: function (response) {
+                    // 成功した場合の処理を記述
+                    window.location.href = response.redirect_url; // リダイレクトする場合
+                    saveBtn.disabled = false;
+                },
+                error: function (xhr, textStatus, errorThrown) {
+                    // 処理を追加
+                },
+                complete: function () {
+                    spinnerOverlay.classList.add('d-none')
+                }
+            })
+        });
+        // テーブルを生成する
+        createReportCardTable();
+    });
+</script>
+{% endblock %}

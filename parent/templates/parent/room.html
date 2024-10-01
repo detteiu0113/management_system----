@@ -1,0 +1,108 @@
+{% extends 'parent/base.html' %}
+{% block title %}{{ room.name }} | {% endblock %}
+{% block content %}
+
+{% block head %}
+<style>
+    chat-messages {
+        height: 280px;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}
+<div class="p-10 lg:p-20 text-center">
+    <h1 class="text-3xl lg:text-6xl text-white">{{ room.name }}</h1>
+</div>
+
+<div class="container-lg mx-auto px-4 lg:w-2/4">
+    <div class="p-4 bg-white rounded-xl">
+        <div class="chat-messages space-y-3" id="chat-messages">
+            {% for message in messages %}
+            <div class="p-4 bg-gray-200 rounded-xl">
+                <p class="fw-bold">{{ message.user.username }}</p>
+                <p>{{ message.content }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="mt-4 p-4 bg-white rounded-xl">
+        <form action="." method="post" class="d-flex">
+            {% csrf_token %}
+            <input type="text" name="content" class="flex-1 me-3 form-control" placeholder="メッセージを入力" id="chat-message-input">
+            <button class="px-5 py-3 rounded-xl text-white bg-teal-600 hover:bg-teal-700" id="chat-message-submit">送信</button>
+        </form>
+    </div>
+</div>
+
+{{ room.slug|json_script:"json-roomname" }}
+{{ request.user.username|json_script:"json-username" }}
+    <script>
+        const roomName = JSON.parse(document.getElementById('json-roomname').textContent);
+        const userName = JSON.parse(document.getElementById('json-username').textContent);
+        const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const wsURL = `${wsProtocol}//${window.location.host}/ws/${roomName}/`;
+        let chatSocket;
+
+        function connectWebSocket() {
+            chatSocket = new WebSocket(wsURL);
+
+            chatSocket.onmessage = function(e) {
+                console.log('onmessage')
+
+                const data = JSON.parse(e.data);
+
+                if (data.message) {
+                    let html = '<div class="p-4 bg-gray-200 rounded-xl">';
+                    html += '<p class="font-semibold">' + data.username + '</p>';
+                    html += '<p>' + data.message + '</p></div>';
+
+                    const chatMessages = document.querySelector('#chat-messages');
+                    const isScrolledToBottom = chatMessages.scrollHeight - chatMessages.clientHeight <= chatMessages.scrollTop + 1;
+
+                    chatMessages.innerHTML += html;
+
+                    if (isScrolledToBottom) {
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    }
+                } else {
+                    alert('The message was empty');
+                }
+            }
+
+            chatSocket.onclose = function(e) {
+                console.log('onclose');
+            }
+        }
+
+        connectWebSocket();
+
+        document.querySelector('#chat-message-submit').onclick = function(e) {
+            e.preventDefault();
+
+            const messageInputDom = document.querySelector('#chat-message-input');
+            const message = messageInputDom.value.trim();
+
+            if (message === '') {
+                alert('メッセージを入力してください');
+                return;
+            }
+
+            // メッセージ入力を無効化して、送信中であることを示す
+            this.disabled = true;
+
+            chatSocket.send(JSON.stringify({
+                'message': message,
+                'username': userName,
+                'room': roomName
+            }));
+
+            messageInputDom.value = '';
+
+            // メッセージ入力を有効化
+            this.disabled = false;
+
+            return false;
+        }
+    </script>
+{% endblock %}
+

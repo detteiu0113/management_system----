@@ -1,0 +1,15 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}生徒情報{% endblock %}
+{% block headline %}年度切り替え><a href="{% url 'owner:update_student_list' %}">生徒情報</a>>高校3年生{% endblock %}
+
+{% block content %}
+<form action="" method="post">
+    {% csrf_token %}
+    <div class="form-check">
+        {{ form.is_planning_to_withdraw }}
+        <label class="form-check-label" for="{{ form.is_planning_to_withdraw.id_for_label }}">退塾予定かどうか</label>
+    </div>
+    <button type="submit">送信</button>
+</form>
+{% endblock %}

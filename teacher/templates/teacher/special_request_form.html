@@ -1,0 +1,103 @@
+{% extends 'teacher/base.html' %}
+
+{% block title %}シフト希望提出{% endblock %}
+
+{% block content %}
+<div class="container">
+    <button type="button" id="submitButton" class="btn btn-secondary">保存</button>
+    <table class="table">
+        <thead>
+            <th></th>
+            {% for time in times %}
+            <th>{{ time.1 }}</th>
+            {% endfor %}
+            <th>全選択</th>
+        </thead>
+        
+        <tbody>
+            {% regroup requests by date as date_list %}
+            {% for date, list in date_list %}
+            <tr data-date="{{ date|date:'Y-m-d' }}">
+                <th>{{ date }}</th>
+                {% for request in list %}
+                <td>
+                    <div class="form-check">
+                        <input data-time="{{ request.time }}" class="form-check-input submit-input" type="checkbox" {% if request.is_available %}checked{% endif %}>
+                    </div>
+                </td>
+                {% endfor %}
+                <td>
+                    <div class="form-check">
+                        <input class="form-check-input select-all-checkbox" type="checkbox">
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // 各日付ごとの全選択のチェックボックス
+        var selectAllCheckboxes = document.querySelectorAll(".select-all-checkbox");
+        selectAllCheckboxes.forEach(function(selectAllCheckbox) {
+            selectAllCheckbox.addEventListener("change", function() {
+                var checkboxes = this.closest("tr").querySelectorAll("input[type='checkbox']");
+                checkboxes.forEach(function(checkbox) {
+                    checkbox.checked = selectAllCheckbox.checked;
+                });
+            });
+        });
+
+        // 日付ごとのチェックボックスの変更時
+        var checkboxes = document.querySelectorAll("input[type='checkbox']:not(.select-all-checkbox)");
+        checkboxes.forEach(function(checkbox) {
+            checkbox.addEventListener("change", function() {
+                var allChecked = true;
+                var checkboxesInRow = this.closest("tr").querySelectorAll("input[type='checkbox']:not(.select-all-checkbox)");
+                checkboxesInRow.forEach(function(singleCheckbox) {
+                    if (!singleCheckbox.checked) {
+                        allChecked = false;
+                    }
+                });
+                this.closest("tr").querySelector(".select-all-checkbox").checked = allChecked;
+            });
+        });
+    });
+
+    document.getElementById('submitButton').addEventListener('click', function(event) {
+        const submitBtn = document.getElementById('submitButton');
+        submitBtn.disabled = true;
+        jsonData = {};
+        document.querySelectorAll('tbody tr').forEach(function(row) {
+            date = row.dataset.date;
+            jsonData[date] = {};
+            row.querySelectorAll('.submit-input').forEach(function(checkbox) {
+                time = checkbox.dataset.time;
+                bool = checkbox.checked;
+                jsonData[date][time] = bool;
+            })
+        })
+        
+        // Ajaxリクエストを送信
+        $.ajax({
+            type: "POST",
+            url: "",
+            data: {
+                'csrfmiddlewaretoken': '{{ csrf_token }}',  // CSRFトークンを含める（Djangoテンプレートタグを使用）
+                'json_data': JSON.stringify(jsonData),
+            },
+            success: function(response) {
+                // 成功した場合の処理を記述
+                window.location.href = response.redirect_url;  // リダイレクトする場合
+                submitBtn.disabled = false;
+            },
+            error: function(xhr, textStatus, errorThrown) {
+                // 処理を追加
+            }
+        })
+    })
+</script>
+{% endblock %}

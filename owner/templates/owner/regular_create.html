@@ -1,0 +1,548 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}新規登録{% endblock %}
+{% block headline %}<a href="{% url 'owner:regular_list' %}">通常授業</a>>新規登録{% endblock %}
+
+{% block style %}
+<style>
+    .card {
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .card-header {
+        background-color: #343a40;
+        color: #fff;
+        border-bottom: 1px solid #343a40;
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+    }
+
+    .card-body {
+        padding: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    label {
+        font-weight: bold;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        border-color: #007bff;
+    }
+
+    .btn-primary:hover {
+        background-color: #0056b3;
+        border-color: #0056b3;
+    }
+    th, td {
+        text-align: center;
+    }
+    .right-sidebar {
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: 40%; /* 画面右半分を占める */
+        height: 100%; /* 画面の高さいっぱいに */
+        background-color: #f8f9fa; /* サイドバーの背景色 */
+        z-index: 1000; /* コンテンツより手前に */
+        overflow-y: auto; /* コンテンツがはみ出た場合にスクロールバーを表示 */
+    }
+    .lesson-card {
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+        margin-bottom: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="card" id="lesson-form">
+                    <div class="card-header text-center">受講追加</div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="grade">学年</label>
+                            <select id="grade" class="form-control">
+                                <option value="">学年を選択</option>
+                                {% for grade in grade_choices %}
+                                <option value="{{ grade.0 }}">{{ grade.1 }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="form-group">
+                                <label for="id_student">生徒名</label>
+                                <select id="id_student" name="student" class="form-control">
+                                    <option value="">---------</option>
+                                    {% for student in form.student.field.queryset %}
+                                        <option value="{{ student.pk }}" data-grade="{{ student.grade }}">{{ student }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="id_periods">コマ数</label>
+                                {{ form.periods }}
+                                <div id="periods-error" class="text-danger d-none">コマ数を選択してください。</div>
+                            </div>
+                            <div class="form-group">
+                                <label for="id_subject">教科</label>
+                                {{ form.subject }}
+                            </div>
+                            <div class="form-group">
+                                <label for="id_start_date">開始日</label>
+                                {{ form.start_date }}
+                            </div>
+                            <div class="form-group d-none">
+                                <label for="id_end_date">終了日</label>
+                                {{ form.end_date }}
+                            </div>
+                            <button type="button" class="btn btn-primary" id="lesson-form-button">次へ</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="other-element" class="container mt-0 right-sidebar">
+        <button id="lesson-select-close" class=" btn btn-danger mb-2">閉じる</button>
+        <table class="table table-bordered table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+    <div id="lesson-list" class="d-none">
+    </div>
+    <div class="d-none"id="register-container">
+        <button class="btn btn-primary" id="saveButton">登録</button>
+    </div>
+
+{% endblock %}
+
+{% block script %}
+    <script>
+        var DAY_CHOICES = JSON.parse('{{ day_choices_json|escapejs }}');
+        var TIME_CHOICES = JSON.parse('{{ time_choices_json|escapejs }}');
+        var SUBJECT_CHOICES = JSON.parse('{{ subject_choices_json|escapejs }}');
+        var GRADE_CHOICES = JSON.parse('{{ grade_choices_json|escapejs }}');
+
+        // "曜日" の文字列を消すための正規表現を定義
+        var regex = /曜日/g;
+
+        // Mac用依存ドロップダウン
+        $(document).ready(function(){
+            $.fn.showOption = function() {
+                this.each(function() {
+                    if ( this.tagName == "OPTION" ) {
+                        var opt = this;
+                        if( $(this).parent().get(0).tagName == "SPAN" ) {
+                            var span = $(this).parent().get(0);
+                            $(span).replaceWith(opt);
+                            $(span).remove();
+                        }
+                        opt.disabled = false;
+                        $(opt).show();
+                    }
+                });
+                return this;
+            }
+
+            $.fn.hideOption = function() {
+                this.each(function() {
+                    if( this.tagName == "OPTION" ) {
+                        var opt = this;
+                        if( $(this).parent().get(0).tagName == "SPAN" ) {
+                            var span = $(this).parent().get(0);
+                            $(span).hide();
+                        } else {
+                            $(opt).wrap("<span>").hide();
+                        }
+                        opt.disabled = true;
+                    }
+                });
+                return this;
+            }
+        });
+
+        // DAY_CHOICESの各要素に対して置換を行う
+        DAY_CHOICES = DAY_CHOICES.map(function(choice) {
+            return [choice[0], choice[1].replace(regex, "")];
+        });
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const lessonForm = document.getElementById('lesson-form');
+            const submitButton = document.getElementById('lesson-form-button');
+            const requiredFields = ['id_student', 'id_periods', 'id_subject', 'id_start_date'];
+
+            function validateForm() {
+                let isValid = true;
+                for (let fieldId of requiredFields) {
+                    const field = document.getElementById(fieldId);
+                    if (!field || !field.value) {
+                        isValid = false;
+                        break;
+                    }
+                }
+                submitButton.disabled = !isValid;
+            }
+
+            for (let fieldId of requiredFields) {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.addEventListener('input', validateForm);
+                }
+            }
+
+            // Initial validation check in case form is pre-filled
+            validateForm();
+
+            const gradeSelect = document.getElementById('grade');
+            const studentSelect = document.getElementById('id_student');
+
+
+            // 生徒名の選択肢をすべて非表示にする
+            Array.from(studentSelect.options).forEach(option => {
+                if (option.value !== "") {
+                        option.style.display = 'none';
+                    };
+            });
+
+            // 学年が変更されたときに生徒名の選択肢を更新する
+            gradeSelect.addEventListener('change', function() {
+                const selectedGrade = gradeSelect.value;
+                studentSelect.selectedIndex = 0;
+                
+                // 生徒名の選択肢をすべて非表示にする
+                Array.from(studentSelect.options).forEach(option => {
+                    if (option.value !== "") {
+                        option.style.display = 'none';
+                    };
+                });
+                
+                // 選択された学年に対応する生徒名の選択肢を表示する
+                Array.from(studentSelect.options).forEach(option => {
+                    if (option.dataset.grade === selectedGrade || !selectedGrade) {
+                        option.style.display = 'block';
+                    }
+                });
+            });
+
+            // 取り消しボタンクリック時の処理
+            document.addEventListener("click", function(event) {
+                if (event.target.id === "lesson-delete") {
+                    // 親要素であるlesson-cardを削除する
+                    var lessonCard = event.target.closest('.lesson-card');
+                    if (lessonCard) {
+                        lessonCard.remove();
+                    }
+                    document.getElementById("lesson-form").classList.remove("d-none");
+                    document.getElementById("register-container").classList.add("d-none")
+
+                    // ボタンを有効化する
+                    var button = document.getElementById("lesson-form-button");
+                    if (button) {
+                        button.disabled = false;
+
+                        // lesson-item要素を非表示にする
+                        var lessonItemElements = document.querySelectorAll('.lesson-item');
+                        lessonItemElements.forEach(function(lessonItemElement) {
+                            lessonItemElement.classList.add('d-none');
+                        });
+                    }
+                };
+            });
+                // 科目と時間を表示する要素を取得
+            var lessonList = document.getElementById("lesson-list");
+        
+            // 科目と時間を表示するHTMLを作成し、lesson-listに追加する関数
+            function addLessonToLessonList(subjectName, periodsValue, lessonItemCount) {
+                var svgHTML = `
+                    <svg id="lesson-select" xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-calendar2-plus" viewBox="0 0 20 20">
+                        <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M2 2a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1z"/>
+                        <path d="M2.5 4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5H3a.5.5 0 0 1-.5-.5zM8 8a.5.5 0 0 1 .5.5V10H10a.5.5 0 0 1 0 1H8.5v1.5a.5.5 0 0 1-1 0V11H6a.5.5 0 0 1 0-1h1.5V8.5A.5.5 0 0 1 8 8"/>
+                    </svg>
+                `;
+        
+                // 科目と時間を表示するHTMLを作成
+                var lessonHTML = `
+                    <div class="lesson-card">
+                        <div class="card-body row">
+                            <div class='col-md-6'>
+                            <h5 class="card-title">未登録受講科目一覧</h5>
+                            <p>科目: ${subjectName}</p>
+                            <p>時間: <span id="lesson-count">${lessonItemCount}</span>/${periodsValue}コマ</p>
+                            ${svgHTML} <!-- SVG要素を追加 -->
+                            </div>
+                            <div class='d-flex justify-content-end col-md-6' style='height: 25%;'>
+                            <button class='btn-danger btn' id='lesson-delete'>取消</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // lessonListにHTMLを追加
+                lessonList.innerHTML += lessonHTML;
+        
+                // lessonListを表示
+                lessonList.classList.remove("d-none");
+        
+                // クリックイベントのリスナーを定義
+                function lessonSelectClickHandler(event) {
+                    var otherElement = document.getElementById("other-element");
+                    otherElement.style.right = "0"; // 右端に移動
+                    otherElement.style.transition = "right 1.5s ease"; // 右からスライドインするアニメーションを追加
+
+                    var lessonItemElements;
+
+                    // 時間と曜日の情報をセルに追加する関数
+                    function addCellInfo(cell, dayIndex, timeIndex) {
+                        // 曜日と時間の情報をセルに設定
+                        cell.setAttribute("data-day", DAY_CHOICES[dayIndex][1]);
+                        cell.setAttribute("data-time", TIME_CHOICES[timeIndex][1]);
+                        cell.setAttribute("data-day-int", DAY_CHOICES[dayIndex][0]);
+                        cell.setAttribute("data-time-int", TIME_CHOICES[timeIndex][0]);
+                    }
+
+                    function addSvgIconAndInfo(cell, dayIndex, timeIndex, periodsValue) {
+                        var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                        svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+                        svg.setAttribute("width", "16");
+                        svg.setAttribute("height", "16");
+                        svg.setAttribute("fill", "currentColor");
+                        svg.setAttribute("class", "bi bi-plus-circle-fill");
+                        svg.setAttribute("viewBox", "0 0 16 16");
+
+                        var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                        path.setAttribute("d", "M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3z");
+
+                        svg.appendChild(path);
+
+                        addCellInfo(svg, dayIndex, timeIndex);
+
+                        function updateLessonItemCount(lessonItemCount) {
+                            // lesson-count 要素を取得
+                            var lessonCountElement = document.getElementById('lesson-count');
+                            // 要素が存在すれば、innerText を使用して値を更新
+                            if (lessonCountElement) {
+                                lessonCountElement.innerText = lessonItemCount;
+                            }
+                        }
+
+                        svg.addEventListener('click', function handleClick() {
+                            lessonItemElements = document.querySelectorAll('.lesson-item');
+
+                            // lessonItemCountを増やす前に、条件を満たすことを確認する
+                            if (lessonItemCount >= periodsValue) {
+                                alert("登録したコマ数を超えています。");
+                                return;
+                            }
+
+                            // lessonItemCountを増やす
+                            lessonItemCount++;
+                            // lessonItemCountの数を動的にHTMLで反映
+                            updateLessonItemCount(lessonItemCount);
+
+                            var day = this.getAttribute("data-day");
+                            var time = this.getAttribute("data-time");
+                            var lessonInfo = day + '曜日 ' + time;
+
+                            // 新しいlesson-info要素を作成
+                            var lessonInfoElement = document.createElement('p');
+                            lessonInfoElement.classList.add('lesson-info');
+                            lessonInfoElement.textContent = lessonInfo;
+                            lessonInfoElement.setAttribute("data-day-int", this.getAttribute("data-day-int"));
+                            lessonInfoElement.setAttribute("data-time-int", this.getAttribute("data-time-int"));
+
+                            // 新しいlesson-item要素を作成
+                            var newLessonItemElement = document.createElement('div');
+                            newLessonItemElement.classList.add('lesson-item');
+                            newLessonItemElement.appendChild(lessonInfoElement);
+
+                            var lessonCard = document.querySelector('.lesson-card');
+                            lessonCard.appendChild(newLessonItemElement);
+                            
+                            // lesson-item要素に対してマージンを追加
+                            newLessonItemElement.style.marginLeft = '20px';
+
+                            svg.removeEventListener('click', handleClick);
+                        });
+
+                    cell.appendChild(svg);
+                    }
+                                        // 曜日を表示
+                    var thead = document.querySelector('.table-dark');
+                    var headerRow = thead.querySelector('tr');
+                    headerRow.innerHTML = ''; // 既存の内容をクリア
+
+                    // 最初の空のthを追加
+                    var emptyTh = document.createElement('th');
+                    headerRow.appendChild(emptyTh);
+
+                    // DAY_CHOICESに対応するthを追加
+                    DAY_CHOICES.forEach(function(choice) {
+                        var th = document.createElement('th');
+                        th.textContent = choice[1];
+                        headerRow.appendChild(th);
+                    });
+
+                        // 時間を表示
+                    var tbody = document.querySelector('tbody');
+                    tbody.innerHTML = ''; // 既存の内容をクリア
+
+                    TIME_CHOICES.forEach(function(timeChoice, timeIndex) {
+                        var tr = document.createElement('tr');
+
+                        // 時間のセルを作成
+                        var timeCell = document.createElement('td');
+                        timeCell.textContent = timeChoice[1];
+                        tr.appendChild(timeCell);
+
+                        // 曜日毎にセルを作成
+                        DAY_CHOICES.forEach(function(dayChoice, dayIndex) {
+                            var dayTimeCell = document.createElement('td');
+                            // SVGアイコンと情報をセルに追加
+                            addSvgIconAndInfo(dayTimeCell, dayIndex, timeIndex, periodsValue);
+                            tr.appendChild(dayTimeCell);
+                        });
+                        
+                        tbody.appendChild(tr);
+                    });
+
+                    // Closeボタンのクリックイベントリスナーを追加
+                    document.getElementById("lesson-select-close").addEventListener("click", lessonSelectCloseHandler);
+
+                    // lesson-select要素のクリックイベントリスナーを削除
+                    event.currentTarget.removeEventListener("click", lessonSelectClickHandler);
+                }
+
+                // Closeボタンをクリックしたときの処理
+                function lessonSelectCloseHandler() {
+                    var otherElement = document.getElementById("other-element");
+                    otherElement.style.transition = "right 2.0s ease"; // アニメーションを追加
+                    otherElement.style.right = "-100%"; // 右にスライドアウト
+
+                    // lesson-select要素のクリックイベントリスナーを追加
+                    document.getElementById("lesson-select").addEventListener("click", lessonSelectClickHandler);
+
+                    // Closeボタンのクリックイベントリスナーを削除
+                    this.removeEventListener("click", lessonSelectCloseHandler);
+                }
+
+                    // lesson-select要素のクリックイベントリスナーを追加
+                document.getElementById("lesson-select").addEventListener("click", lessonSelectClickHandler);
+
+            }
+
+            // ボタンクリック時の処理
+            document.getElementById("lesson-form-button").addEventListener("click", function(event) {
+                // lesson-formを非表示にし、lesson-listを表示する
+                document.getElementById("lesson-form").classList.add("d-none");
+                document.getElementById("lesson-list").classList.remove("d-none");
+
+                document.getElementById("register-container").classList.remove("d-none");
+                document.getElementById("register-container").classList.add("d-block");
+                // コマ数フィールドから情報を取得
+                var periodsField = document.getElementById("id_periods");
+                var periodsValue = periodsField.value;
+
+                // periodsが0または未登録の場合、エラーメッセージを表示して処理を中断する
+                if (periodsValue === "0" || periodsValue === "") {
+                    // エラーメッセージを表示
+                    document.getElementById("periods-error").classList.remove("d-none");
+                    return;
+                }
+
+                // エラーメッセージを非表示にする
+                document.getElementById("periods-error").classList.add("d-none");
+
+                // 科目フィールドから情報を取得
+                var subjectField = document.getElementById("id_subject");
+                var subjectValue = subjectField.value;
+
+                // 科目名を取得
+                var subjectName = '';
+                for (var i = 0; i < SUBJECT_CHOICES.length; i++) {
+                    if (SUBJECT_CHOICES[i][0] == subjectValue) {
+                        subjectName = SUBJECT_CHOICES[i][1];
+                        break;
+                    }
+                }    
+
+                var lessonItemCount = 0;
+                // 科目と時間を表示するHTMLを作成し、lesson-listに追加
+                addLessonToLessonList(subjectName, periodsValue, lessonItemCount);
+                // ボタンを無効化する
+                event.target.disabled = true;      
+            });
+
+        });
+
+        // 登録ボタンがクリックされたときの処理
+        saveButton.addEventListener('click', function(event) {
+            spinnerOverlay.classList.remove('d-none');
+
+            // フォームから生徒名を取得し、文字列型に変換
+            var student = String(document.getElementById('id_student').value);
+
+            var subject = document.getElementById('id_subject').value;
+
+            // フォームから開始日を取得
+            var startDate = document.getElementById('id_start_date').value;
+
+            // フォームから終了日を取得
+            var endDate = document.getElementById('id_end_date').value;
+
+            // 選択された曜日と時間のデータを取得
+            var selectedTimeTable = [];
+                document.querySelectorAll('.lesson-item').forEach(function(item) {
+                    var day = item.querySelector('.lesson-info').getAttribute("data-day-int");
+                    var time = item.querySelector('.lesson-info').getAttribute("data-time-int");
+                    selectedTimeTable.push({ day: parseInt(day), time: parseInt(time) });
+                });
+
+            var csrfToken = "{{ csrf_token }}";
+
+            // データオブジェクトを作成
+            var data = {
+                "student": student,
+                "subject": subject,
+                "start_date": startDate,
+                "end_date": endDate,
+                "selected_timetable": selectedTimeTable,
+            };
+
+            jsonData = JSON.stringify(data) 
+
+            // Ajaxリクエストを送信
+            $.ajax({
+                type: 'POST',
+                url: '{% url "owner:regular_create" %}',
+                data: {
+                    'csrfmiddlewaretoken': '{{ csrf_token }}',  // CSRFトークンを含める（Djangoテンプレートタグを使用）
+                    'json_data': jsonData,
+                },
+                success: function(response) {
+                    if (response.success) {
+                        window.location.href = response.redirect_url;  // リダイレクトする場合
+                    } else {
+                        alert(response.error);
+                        spinnerOverlay.classList.add('d-none');
+                    }
+                }
+            });
+        });
+    </script>
+{% endblock %}

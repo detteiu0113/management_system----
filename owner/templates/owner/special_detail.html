@@ -1,0 +1,181 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}詳細{% endblock %}
+{% block headline %}<a href="{% url 'owner:special_list' %}">講習授業</a>>詳細{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between">
+        <a href="{% url 'owner:special_print' pk %}" class="btn btn-secondary">予定表印刷</a>
+        <a href="{% url 'owner:special_admin_create' pk %}" class="btn btn-primary">新規追加</a></div>
+    {% if special_lesson_admins %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>生徒名</th>
+                <th>科目</th>
+                <th>取得済み</th>
+                <th>コマ数</th>
+                <th>編集</th>
+                <th>中止</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for special_lesson in special_lesson_admins %}
+            <tr data-id="{{ special_lesson.id }}">
+                <td>{{ special_lesson.student }}</td>
+                <td data-subject="{{ special_lesson.subject }}">{{ special_lesson.get_subject_display }}</td>
+                <td>{{ special_lesson.get_referencing_lesson_count }}</td>
+                <td data-periods="{{ special_lesson.periods }}">{{ special_lesson.periods }}</td>
+                <td>
+                    <button class="btn btn-danger edit-button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
+                            <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+                            <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+                        </svg>
+                    </button>
+                    <button class="btn btn-warning d-none cancel-button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-circle" viewBox="0 0 16 16">
+                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                        </svg>
+                    </button>
+                    <button class="btn btn-success d-none save-button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-check-lg" viewBox="0 0 16 16">
+                            <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425z"/>
+                        </svg>
+                    </button>
+                </td>
+                <td>
+                    <form action="{% url 'owner:special_admin_delete' special_lesson.pk %}" method="post">
+                        {% csrf_token %}
+                        <button class="btn btn-secondary delete-button" type="submit">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-trash3" viewBox="0 0 16 16">
+                                <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5M11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47M8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5"/>
+                            </svg>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    var subject_choices_json = {{ subject_choices_json|safe }};
+
+    function createSelect(choices) {
+        var select = document.createElement('select');
+        choices.forEach(function (choice) {
+            var option = document.createElement('option');
+            option.text = choice[1];
+            option.value = choice[0];
+            select.appendChild(option);
+        });
+        return select;
+    };
+
+    // 編集ボタンがクリックされたときの処理
+    document.querySelectorAll('.edit-button').forEach(function (button) {
+        button.addEventListener('click', function () {
+            var row = button.closest('tr');
+            var subject = row.querySelector('td:nth-child(2)');
+            var periods = row.querySelector('td:nth-child(4)')
+
+            var subjectSelect = createSelect(subject_choices_json);
+            subjectSelect.value = subject.dataset.subject;
+            subject.innerHTML = '';
+            subject.appendChild(subjectSelect);
+
+            var periodsInput = document.createElement('input')
+            periodsInput.value = periods.dataset.periods;
+            periods.innerHTML = '';
+            periods.appendChild(periodsInput)
+
+            var allButtons = document.querySelectorAll('button');
+            allButtons.forEach(function(button) {
+                button.disabled = true;
+            });
+
+            button.classList.add('d-none');
+            row.querySelector('.save-button').classList.remove('d-none');
+            row.querySelector('.save-button').disabled = false;
+            row.querySelector('.cancel-button').classList.remove('d-none');
+            row.querySelector('.cancel-button').disabled = false;
+        });
+    });
+
+    document.querySelectorAll('.cancel-button').forEach(function (button) {
+        button.addEventListener('click', function () {
+            var row = button.closest('tr');
+            var subject = row.querySelector('td:nth-child(2)');
+            var periods = row.querySelector('td:nth-child(4)');
+
+            subject.removeChild(subject.querySelector('select'));
+            periods.removeChild(periods.querySelector('input'));
+
+            subject_choices_json.forEach(function(choice) {
+                if (choice[0] === parseInt(subject.dataset.subject)) {
+                    subject.textContent = choice[1];
+                }
+            });
+
+            periods.textContent = periods.dataset.periods;
+
+            button.classList.add('d-none');
+            row.querySelector('.save-button').classList.add('d-none');
+            row.querySelector('.edit-button').classList.remove('d-none');
+
+            var allButtons = document.querySelectorAll('button');
+            allButtons.forEach(function(button) {
+                button.disabled = false;
+            });
+        });
+    });
+
+    document.querySelectorAll('.save-button').forEach(function (button) {
+        button.addEventListener('click', function () {
+            var row = button.closest('tr');
+            var id = row.dataset.id
+ 
+            var subjectSelect = row.querySelector('td:nth-child(2) select');
+            var periodsInput = row.querySelector('td:nth-child(4) input')
+
+
+            var selectedSubject = subjectSelect.value;
+            var selectedPeriods = periodsInput.value;
+
+            var csrfToken = "{{ csrf_token }}";
+
+            var data = {
+                'id': id,
+                'subject': selectedSubject,
+                'periods': selectedPeriods
+            };
+
+            jsonData = JSON.stringify(data);
+            console.log(jsonData)
+
+            // Ajaxリクエストを送信
+            $.ajax({
+            type: 'POST',
+            url: '{% url "owner:special_admin_edit" pk %}',
+            data: {
+                'csrfmiddlewaretoken': '{{ csrf_token }}',
+                'json_data': jsonData,
+            },
+            success: function(response) {
+                window.location.href = response.redirect_url;
+            },
+            error: function(xhr, status, error) {
+
+            }
+            });
+        });
+    });
+</script>
+{% endblock %}

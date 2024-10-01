@@ -1,0 +1,15 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}削除{% endblock %}
+{% block headline %}<a href="{% url 'owner:special_list' %}">講習授業</a>>削除{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h4>講習の削除(関連する過去の授業のデータも削除されます)</h4>
+    <p>{{ object }}を削除してもよろしいですか?</p>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">削除</button>
+    </form>
+</div>
+{% endblock %}

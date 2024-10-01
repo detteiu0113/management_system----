@@ -1,0 +1,153 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}英単語テスト編集{% endblock %}
+{% block headline %}<a href="{% url 'owner:student_list' %}">生徒情報</a>><a href="{% url 'owner:document_select' pk %}">{{ student }}の資料</a>>英単語テスト編集{% endblock %}
+
+{% block content %}
+<div class="container">
+    <button id="save-button" class="btn btn-primary mb-3" type="submit">保存</button>
+    <div id="alpha-table" class="table-container"></div>
+    <div id="beta-table" class="table-container"></div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    const CATEGORY_CHOICES = {{ category_choices|safe }};
+    const PROGRAM_CHOICES = {{ program_choices|safe }};
+    const COUNT_CHOICES = {{ count_choices|safe }};
+    const data = {{ json_str|safe }};
+    
+    function createTable(category) {
+        let categoryChoices = CATEGORY_CHOICES.find(c => c[0] === category);
+        
+        if (categoryChoices) {
+            let tableContainer = document.getElementById(category === 1 ? 'alpha-table' : 'beta-table');
+
+            let table = document.createElement('table');
+            table.classList.add('table', 'table-bordered','table-striped');// table-stripedを追加して奇数行の色を変える
+            table.style.border = '2px solid black'; // 罫線を太くする
+
+            let thead = document.createElement('thead');
+            thead.classList.add('table-dark');
+            let headerRow = document.createElement('tr');
+
+            let categoryHeader = document.createElement('th');
+            categoryHeader.textContent = categoryChoices[1];
+            categoryHeader.scope = 'col'; // 列のスコープを指定
+            headerRow.appendChild(categoryHeader);
+
+            COUNT_CHOICES.forEach(count => {
+                let countHeader = document.createElement('th');
+                countHeader.textContent = count[1];
+                countHeader.scope = 'col'; // 列のスコープを指定
+                headerRow.appendChild(countHeader);
+            });
+
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+            
+            let tbody = document.createElement('tbody');
+            PROGRAM_CHOICES.forEach(program => {
+                let row = document.createElement('tr');
+
+                let programCell = document.createElement('th');// 左側の列はth要素を使用
+                programCell.textContent = program[1];
+                programCell.scope = 'row'; // 行のスコープを指定
+                row.appendChild(programCell);
+                
+                COUNT_CHOICES.forEach(count => {
+                    let cell = document.createElement('td');
+                    cell.setAttribute('data-category', category);
+                    cell.setAttribute('data-program', program[0]);
+                    cell.setAttribute('data-count', count[0]);
+                    
+                    // 入力フォームを作成
+                    let inputDate = document.createElement('input');
+                    inputDate.type = 'date';
+                    inputDate.classList.add('form-control'); // Bootstrapのフォームコントロールクラスを追加
+                    inputDate.value = data[category][program[0]][count[0]]["date"] || '';
+                    cell.appendChild(inputDate);
+                    
+                    let inputScore = document.createElement('input');
+                    inputScore.type = 'number';
+                    inputScore.classList.add('form-control'); // Bootstrapのフォームコントロールクラスを追加
+                    inputScore.placeholder = '得点';
+                    inputScore.min = '0';
+
+                    inputScore.value = data[category][program[0]][count[0]]["score"] || '';
+                    cell.appendChild(inputScore);
+                    
+                    let inputFullScore = document.createElement('input');
+                    inputFullScore.type = 'number';
+                    inputFullScore.classList.add('form-control'); // Bootstrapのフォームコントロールクラスを追加
+                    inputFullScore.placeholder = '満点';
+                    inputFullScore.min = '0';
+                    inputFullScore.value = data[category][program[0]][count[0]]["fullscore"] || '';
+                    cell.appendChild(inputFullScore);
+
+                    row.appendChild(cell);
+                });
+                
+                tbody.appendChild(row);
+            });
+            table.appendChild(tbody);
+            tableContainer.appendChild(table);
+        } else {
+            console.error("Invalid category");
+        }
+    }
+
+    createTable(1); // αの表を作成
+    createTable(2); // βの表を作成
+
+    document.getElementById('save-button').addEventListener('click', function(){        
+        let formData = {}; // フォームデータを保存するオブジェクト
+        
+        document.querySelectorAll('td').forEach(cell => {
+            let category = cell.getAttribute('data-category');
+            let program = cell.getAttribute('data-program');
+            let count = cell.getAttribute('data-count');
+
+            if (!formData[category]) {
+                formData[category] = {};
+            }
+            if (!formData[category][program]) {
+                formData[category][program] = {};
+            }
+            if (!formData[category][program][count]){
+                formData[category][program][count]={};
+            }
+
+            formData[category][program][count]["date"] = cell.querySelector('input[type="date"]') ? cell.querySelector('input[type="date"]').value : null;
+            formData[category][program][count]["score"] = cell.querySelector('input[type="number"]') ? cell.querySelector('input[type="number"]').value : null;
+            formData[category][program][count]["fullscore"] = cell.querySelectorAll('input[type="number"]')[1] ? cell.querySelectorAll('input[type="number"]')[1].value : null;
+        });
+
+        jsonData = JSON.stringify(formData) 
+
+        spinnerOverlay.classList.remove('d-none')
+        
+        // Ajaxリクエストを送信
+        $.ajax({
+            type: "POST",
+            url: "",
+            data: {
+                'csrfmiddlewaretoken': '{{ csrf_token }}',  // CSRFトークンを含める（Djangoテンプレートタグを使用）
+                'json_data': jsonData,
+            },
+            success: function(response) {
+                // 成功した場合の処理を記述
+                window.location.href = response.redirect_url;  // リダイレクトする場合
+            },
+            error: function(xhr, textStatus, errorThrown) {
+                // 処理を追加
+            },
+            complete: function () {
+                spinnerOverlay.classList.add('d-none')
+            }
+        })
+       
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,255 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}新規作成{% endblock %}
+{% block headline %}<a href="{% url 'owner:special_list' %}">講習授業</a>>新規作成{% endblock %}
+
+{% block style %}
+<style>
+    /* カスタムCSS */
+    .card {
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .form-control {
+        border-radius: 10px;
+    }
+    .form-check-label {
+        font-weight: 400;
+    }
+    #error-message {
+        font-size: 14px;
+    }
+    #send-button {
+        border-radius: 10px;
+    }
+    .container {
+        margin-top: 100px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-6 offset-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="text-center">講習登録</h2>
+                    <form>
+                        <div class="form-group">
+                            <label for="name">講習名:</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="start_date">開始日:</label>
+                            <input type="date" class="form-control" id="start_date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="end_date">終了日:</label>
+                            <input type="date" class="form-control" id="end_date" required>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="is_extend">
+                            <label class="form-check-label" for="is_extend">時間割の拡張</label>
+                        </div>
+                        <ul id="date-list" class="list-group mt-3"></ul>
+                        <p id="error-message" class="text-danger" style="display: none;">終了日は開始日より後の日付を選択してください。</p>
+                        <button type="button" class="btn btn-primary mt-3" id="send-button">送信</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    document.getElementById('send-button').addEventListener('click', function() {
+        const name = document.getElementById('name').value;
+        const start_date = document.getElementById('start_date').value;
+        const end_date = document.getElementById('end_date').value;
+        const is_extend = document.getElementById('is_extend').checked;
+        const sendBtn = document.getElementById('send-button');
+
+        if (name === '' || start_date === '' || end_date === '' || (is_extend && !is_extend)) {
+            alert('全ての必須項目を入力してください。');
+            return; // 入力が不完全な場合は処理を中断
+        }
+
+        const data = {
+                name: name,
+                start_date: start_date,
+                end_date: end_date,
+                is_extend: is_extend
+            };
+        const jsonData = JSON.stringify(data);
+
+        sendBtn.disabled = true;
+
+        spinnerOverlay.classList.remove('d-none')
+        
+        $.ajax({
+            type: "POST",
+            url: "{% url 'owner:special_create' %}",
+            data: {
+                'csrfmiddlewaretoken': '{{ csrf_token }}',  // CSRFトークンを含める（Djangoテンプレートタグを使用）
+                'json_data': jsonData,
+            },
+            success: function(response) {
+                window.location.href = "{% url 'owner:special_list' %}";
+            },
+            error: function(xhr, textStatus, errorThrown) {
+                var response = JSON.parse(xhr.responseText);
+                alert(response.message);
+                sendBtn.disabled = false;
+            },
+            complete: function () {
+                spinnerOverlay.classList.add('d-none')
+            }
+        });
+    });
+</script>
+{% endblock %}
+
+<!-- 日付選択フォーム-->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const startDateInput = document.getElementById("start_date");
+        const endDateInput = document.getElementById("end_date");
+        const showDatesButton = document.getElementById("show-dates-button");
+        const sendButton = document.getElementById("send-button");
+        const dateListContainer = document.getElementById("date-list");
+        const specialLessonForm = document.getElementById("special-lesson-form");
+
+        specialLessonForm.addEventListener("input", function () {
+            const formInputs = document.querySelectorAll('input[type="text"], input[type="date"]');
+            let isFormValid = true;
+            
+            formInputs.forEach(function (input) {
+                if (!input.checkValidity()) {
+                isFormValid = false;
+                }
+            });
+
+            if (isFormValid) {
+                showDatesButton.disabled = false;
+            } else {
+                showDatesButton.disabled = true;
+            }
+        });
+    
+        sendButton.disabled=true;
+
+        showDatesButton.addEventListener("click", function() {
+            const start_date = new Date(document.getElementById("start_date").value);
+            const end_date = new Date(document.getElementById("end_date").value);
+            if (end_date <= start_date) {
+                document.getElementById("error-message").style.display = "block"; // 開始日が終了日よりも遅い場合のエラーメッセージ
+                return;
+            } else {
+                document.getElementById("error-message").style.display = "none"; // エラーメッセージを非表示にする
+                showDatesButton.disabled=true;
+                sendButton.disabled=false;
+                document.getElementById("start_date").disabled = true;
+                document.getElementById("end_date").disabled = true;
+            }
+            
+            // Get start and end dates
+            dateListContainer.innerHTML = ""; // すでに表示されている日付をクリア
+            const startDate = new Date(startDateInput.value);
+            const endDate = new Date(endDateInput.value);
+
+            const currentDate = new Date(startDate);
+            const endDateObj = new Date(endDate);
+
+            while (currentDate <= endDateObj) {
+            const checkboxLabel = document.createElement("label");
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.name = "selected_dates";
+            checkbox.value = currentDate.toISOString().split('T')[0]; // 日付をISO形式で取得
+
+            checkboxLabel.appendChild(checkbox);
+            checkboxLabel.appendChild(document.createTextNode(currentDate.toLocaleDateString()));
+
+            dateListContainer.appendChild(checkboxLabel);
+            dateListContainer.appendChild(document.createElement("br"));
+
+            currentDate.setDate(currentDate.getDate() + 1); // 次の日付に進む
+            }
+
+        // すべてのチェックボックスを選択するボタンを追加
+        const selectAllButton = document.createElement("button");
+        selectAllButton.textContent = "すべて選択";
+        selectAllButton.addEventListener("click", function (event) {
+            event.preventDefault();
+            const checkboxes = document.querySelectorAll('input[name="selected_dates"]');
+            isChecked = this.textContent !== "すべて選択";
+
+            checkboxes.forEach(function (checkbox) {
+                checkbox.checked = !isChecked; // チェック状態をトグル
+            });
+            // ボタンのテキストを切り替える
+            this.textContent = isChecked ? "すべて選択" : "チェックをすべて外す";
+            sendButton.disabled = isChecked;
+        });
+        dateListContainer.appendChild(selectAllButton);
+        sendButton.disabled = true;
+
+        const checkboxes = document.querySelectorAll('input[name="selected_dates"]');
+        let numberOfCheckedCheckboxes = 0;
+        for (let i = 0; i < checkboxes.length; i++) {
+            const checkbox = checkboxes[i];
+            checkbox.addEventListener("click", function() {
+            if (checkbox.checked) {
+                sendButton.disabled = false;
+            } else {
+                for (let i = 0; i < checkboxes.length; i++) {
+                const checkbox = checkboxes[i];
+                if (checkbox.checked) {
+                    sendButton.disabled = false;
+                    break;
+                }
+                sendButton.disabled = true;
+                selectAllButton.textContent = "すべて選択";
+                }
+            }
+            });
+        }
+        });
+
+        sendButton.addEventListener("click", function() {
+            const selectedDates = [];
+            const checkboxes = document.querySelectorAll('input[name="selected_dates"]:checked');
+            checkboxes.forEach(function(checkbox) {
+                selectedDates.push(checkbox.value);
+            });
+
+            const name = document.getElementById('name').value;
+
+            const data = {
+                "name": name,
+                "selected_dates": selectedDates
+            };
+
+            // JSONデータをサーバーに送信する
+            const jsonData = JSON.stringify(data);
+
+            $.ajax({
+                type: "POST",
+                url: "{% url 'owner:special_create' %}",
+                data: {
+                    'csrfmiddlewaretoken': '{{ csrf_token }}',  // CSRFトークンを含める（Djangoテンプレートタグを使用）
+                    'json_data': jsonData,
+                },
+                success: function(response) {
+                    window.location.href = "{% url 'owner:special_list' %}";
+                },
+                error: function(xhr, textStatus, errorThrown) {
+                    
+                }
+            });
+        });
+    });
+</script>

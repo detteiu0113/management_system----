@@ -1,0 +1,52 @@
+{% extends 'teacher/base.html' %}
+
+{% block title %}生徒特筆事項{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-9">
+            <h4>{{ student }}の特筆事項</h4>
+        </div>
+        <div class="col-3">
+            <a  class="btn btn-secondary" href="{% url 'teacher:student_notable_create' student.pk %}">追加</a>
+        </div>
+    </div>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th scope="col">内容</th>
+                <th>作成</th>
+                <th>日付</th>
+                <th>編集</th>
+                <th>削除</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for notable in notables %}
+            <tr>
+                <td>{{ notable.notable }}</td>
+                <td>{{ notable.writer }}</td>
+                <td>{{ notable.date }}</td>
+                <td>
+                    <form action="{% url 'teacher:student_notable_update' notable.pk %}" method="get">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-primary" {% if report.writer != request.uesr %}disabled{% endif %}>編集</button>
+                    </form>
+                </td>
+                <td>
+                    <form action="{% url 'teacher:student_notable_delete' notable.pk %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-danger" {% if report.writer != request.uesr %}disabled{% endif %}>削除</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5">データがありません。</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

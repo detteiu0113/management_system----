@@ -1,0 +1,66 @@
+{% extends 'owner/base.html' %}
+
+{% block headline %}<a href="{% url 'owner:student_list' %}">生徒情報</a>><a href="{% url 'owner:student_detail' student.pk %}">個人情報</a>>個人情報編集{% endblock %}
+
+{% block style %}
+<style>
+    .form-group {
+        margin-bottom: 15px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-group label {
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        border-color: #007bff;
+        color: white;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+        border-radius: 4px;
+    }
+
+    .btn-primary:hover {
+        background-color: #0056b3;
+    }
+
+    .text-danger {
+        color: #dc3545;
+        margin-top: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>生徒情報を更新</h1>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            {{ form.non_field_errors }}
+            {% for field in form %}
+                <div class="form-group">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    <div class="text-danger">{{ field.errors }}</div>
+                </div>
+            {% endfor %}
+        </div>
+        <button type="submit" class="btn btn-primary">変更を保存</button>
+    </form>
+</div>
+{% endblock %}

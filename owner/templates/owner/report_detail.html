@@ -1,0 +1,128 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}授業報告書{% endblock %}
+{% block headline %}<a href="{% url 'owner:student_list' %}">生徒情報</a>><a href="{% url 'owner:document_select' pk %}">{{ student }}の資料</a>>授業報告書{% endblock %}
+
+{% block style %}
+    <style>
+        /* Custom CSS for better appearance */
+        .table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 0px!important;
+        }
+
+        .table th,.table td {
+            border: 1px solid #dee2e6;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .table thead th {
+            background-color: #f8f9fa;
+            border-color: #dee2e6;
+        }
+
+        .table tbody tr:nth-of-type(even) {
+            background-color: #f8f9fa;
+        }
+
+        .table tbody tr:hover {
+            background-color: #e2e6ea;
+        }
+
+        /* Adjust padding for the last td in the row */
+        .table tbody tr:last-child td:last-child {
+            padding-right: 24px; /* Adjust this value as needed */
+        }
+
+        .report {
+            border: 1px solid black;
+        }
+
+        .border-none {
+            border-bottom: 0!important;
+        }
+
+        .bold-font{
+            font-weight: bold;
+        }
+        
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <form method="GET" class="mb-3 row align-items-center">
+            <div class="col">
+                <label for="month_select" class="sr-only">月を選択:</label>
+            </div>
+            <div class="col">
+                <select name="month" id="month_select" class="form-control">
+                    <option value="">すべての月</option>
+                </select>
+            </div>
+            <div class="col">
+                <button type="submit" class="btn btn-primary">検索</button>
+            </div>
+        </form>
+        <div class="container">
+            {% for report in reports %}
+            <div class="report {% if not forloop.last %}border-none{% endif %}">
+                <table class="table">
+                    <tbody>
+                    <tr>
+                        <td class="bold-font">時間</td>
+                        <td>{{ report.lesson.date }} {{ report.lesson.get_time_display }} {% if report.lesson.rescheduled_date %}(振替先: {{ report.lesson.rescheduled_date }}{{ report.lesson.get_rescheduled_time_display }}){% endif %}</td>
+                        <td class="bold-font">担当講師</td>
+                        <td>{{ report.teacher }}</td>
+                    </tr>
+                    <tr>
+                        <td class="bold-font">教科</td>
+                        <td>{% if report.lesson.is_regular or report.lesson.is_temporaly %}{{ report.lesson.get_subject_display }}{% else %}{{ report.lesson.get_subject_display }} ({{ report.lesson.special.special_lesson.name }}){% endif %}</td>
+                        <td class="bold-font">単元</td>
+                        <td>{{ report.unit }}</td>
+                    </tr>
+                    <tr>
+                    </tr>
+                    <tr>
+                        <td colspan="1" class="bold-font">宿題を出したか</td>
+                        <td colspan="1">{% if report.homework %}◯{% else %}×{% endif %}</td>
+                        <td colspan="1" class="bold-font">宿題をやってきたか</td>
+                        <td colspan="1">{% if report.homework_done %}◯{% else %}×{% endif %}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="1"class="bold-font">授業中の様子</td>
+                        <td colspan="3">{{ report.behavior }}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="1"class="bold-font">改善点・苦手項目</td>
+                        <td colspan="3">{{ report.weakness }}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}
+
+{% block script %}
+    <script>
+        // 月の選択肢を生成する関数
+        function populateMonthSelect() {
+            var select = document.getElementById("month_select");
+            for (var i = 1; i <= 12; i++) {
+                var option = document.createElement("option");
+                option.text = i + "月";
+                option.value = i;
+                select.add(option);
+            }
+        }
+
+        // ページが読み込まれた時に選択肢を生成する
+        document.addEventListener("DOMContentLoaded", function() {
+            populateMonthSelect();
+        });
+    </script>
+{% endblock %}

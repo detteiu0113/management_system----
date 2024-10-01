@@ -1,0 +1,24 @@
+{% extends 'parent/base.html' %}
+{% block title %}Rooms | {% endblock %}
+{% block content %}
+<div class="container-lg mt-10">
+    <div class="row">
+        {% for room in rooms %}
+        <div class="col-lg-12 mb-4">
+            <div class="card border-0 rounded-3 shadow">
+                <div class="card-body">
+                    <h2 class="mb-4 text-2xl font-semibold">{{ room.name }}</h2>
+                    {% if room.last_message %}
+                        <p>{{ room.last_message.content }}</p>
+                    {% endif %}
+                    <a href="{% url 'parent:room' user.parent_profile.student.pk room.slug %}" class="btn btn-primary btn-lg rounded-pill px-5">入る</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+
+
+{% endblock %}

@@ -1,0 +1,134 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}予定表印刷{% endblock %}
+{% block headline %}<a href="{% url 'owner:print_select' %}">予定表印刷</a>>印刷ページ{% endblock %}
+
+{% block head %}
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/bootstrap5@6.1.11/index.global.min.js"></script>
+{% endblock %}
+
+{% block style %}
+<style>
+    #calendarContainer {
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    .calendar a {
+        color: black!important;
+        text-decoration: none!important;
+    }
+
+    .calendar {
+        width: 900px;
+        margin: auto;
+    }
+
+    .fc-daygrid-day-number {
+        font-size: 10px;  /* 希望のフォントサイズに変更 */
+        padding: 2px!important;
+    }
+
+    .fc-daygrid-day-events {
+        margin-bottom: 2px!important;
+    }
+
+    .fc-toolbar {
+        margin-bottom: 10px!important;
+    }
+
+    .fc-day {
+        margin: 0 !important; /* マージンを削除 */
+        padding: 0 !important; /* パディングを削除 */
+    }
+
+    @media print {
+        .headline-design {
+            display: none;
+        }
+
+        body {
+            overflow-y: hidden;
+            height: auto !important;
+            min-height: auto !important;
+        }
+
+        .calendar {
+            page-break-after: always;
+            margin-top: auto;
+            margin-bottom: 0;
+            height: auto;
+        }
+
+        #sidebar {
+            display: none;
+        }
+
+        #printButton {
+            display: none;
+        }
+
+        .main-content {
+            margin: 0;
+            padding: 0;
+        }
+    }
+    
+</style>
+{% endblock %}
+
+{% block content %}
+<button id="printButton" class="btn btn-secondary">印刷(A4横向き推奨)</button>
+<div id="calendarContainer">
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var allEvenets = {{ json_str|safe }};
+        var calendarContainer = document.getElementById('calendarContainer');
+        allEvenets.forEach(function(obj) {
+            var container = document.createElement('div');
+            container.classList.add('calendar');
+            calendarContainer.appendChild(container);
+            var calendar = new FullCalendar.Calendar(container, {
+                initialView: 'dayGridMonth',
+                locale: 'ja',
+                validRange: {
+                    start: '{{ start_date }}',
+                    end: '{{ end_date }}'
+                },
+                headerToolbar: {
+                    start: '',
+                    center: 'title',
+                    end: ''
+                },
+                titleFormat: function(info) {
+                    var year = '{{ year }}';
+                    var month = '{{ month }}';
+                    return year + '年' + month + '月予定表 ' + obj.student;
+                },
+                events: obj.events,
+                height: '175mm',
+                fixedWeekCount: false,
+                eventContent: function(arg) {
+                    // カスタム要素を作成
+                    var element = document.createElement('div');
+                    element.innerHTML = `<div style='height: 12px; line-height: 10px; font-size: 12px;'>${arg.event.title}</div>`;  // 高さを設定
+
+                    return { domNodes: [element] };
+                },
+                eventOrder: "start",
+                handleWindowResize: false,
+            });
+            calendar.render();
+        });
+        document.getElementById('printButton').addEventListener('click', function() {
+            window.print();
+        });
+    });
+</script>
+
+{% endblock %}

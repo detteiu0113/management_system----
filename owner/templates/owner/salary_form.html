@@ -1,0 +1,61 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}新規追加{% endblock %}
+{% block headline %}会計><a href="{% url 'owner:salary_list' %}">給与明細</a>>新規追加{% endblock %}
+
+{% block content %}
+<div class="container d-flex justify-content-center">
+    <div class="card p-4" style="max-width: 400px;">
+        <div class="name-container">
+            <h1 class="text-center">給与入力</h1>
+        </div>
+        <form id="salaryForm" method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <div id="hourlyRateField" style="display: none;">
+                <label for="hourlyRate">時間数</label>
+                <input type="number" id="hourlyRate" name="hourlyRate" class="form-control">
+            </div>
+            <!-- hiddenフィールド -->
+            <input type="hidden" id="calculated_price" name="calculated_price">
+            <button type="submit" class="btn btn-primary">保存</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var costNameField = document.querySelector('#id_cost_name');
+        var hourlyRateField = document.querySelector('#hourlyRateField');
+        var priceField = document.querySelector('#id_price');
+
+        costNameField.addEventListener('change', function () {
+            if (this.value == 1) {  
+                hourlyRateField.style.display = 'block';
+                priceField.value = 1010;
+                priceField.readOnly = true;
+            } else {
+                hourlyRateField.style.display = 'none';
+                priceField.value = '';
+                priceField.readOnly = false;
+            }
+        });
+
+        var salaryForm = document.getElementById('salaryForm');
+        salaryForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            spinnerOverlay.classList.remove('d-none')
+            var costName = document.getElementById('id_cost_name').value;
+            if (costName == 1) {
+                var hourlyRate = document.getElementById('hourlyRate').value;
+                var price = {{ hourly_rate }};
+                priceField.value = price * hourlyRate;
+                document.getElementById('id_price').value = price * hourlyRate;
+            }
+            salaryForm.submit();
+        });
+    });
+</script>
+{% endblock %}

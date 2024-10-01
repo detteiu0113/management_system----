@@ -1,0 +1,102 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}生徒情報{% endblock %}
+{% block headline %}年度切り替え>生徒情報{% endblock %}
+
+{% block style %}
+<style>
+    .grade-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 1rem;
+    }
+
+    .student-list {
+        list-style-type: none;
+        padding: 0;
+    }
+
+    .student-item {
+        border-bottom: 1px solid #dee2e6;
+        padding: 1rem 0;
+    }
+
+    .student-item a {
+        text-decoration: none;
+        color: #489ff5;
+    }
+
+    .student-item:hover {
+        background-color: #ededed;
+    }
+
+    .upgrade-status {
+        font-size: 0.9rem;
+        margin-left: 0.5rem;
+    }
+
+    .upgraded {
+        color: #28a745;
+    }
+
+    .not-upgraded {
+        color: #dc3545;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col">
+            <h4 class="grade-title">小学6年生</h4>
+            <hr>
+            <ul class="student-list">
+                {% for student in grade_6_students %}
+                <li class="student-item {% if student.is_upgraded %}upgraded{% else %}not-upgraded{% endif %}">
+                    <a href="{% url 'owner:update_to_middle' student.pk %}">{{ student }}</a>
+                    {% if student.is_upgraded %}
+                    <span class="upgrade-status">(年度切り替え済み)</span>
+                    {% else %}
+                    <span class="upgrade-status">(年度切り替え未実施)</span>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="col">
+            <h4 class="grade-title">中学3年生</h4>
+            <hr>
+            <ul class="student-list">
+                {% for student in grade_9_students %}
+                <li class="student-item {% if student.is_upgraded %}upgraded{% else %}not-upgraded{% endif %}">
+                    <a href="{% url 'owner:update_to_high' student.pk %}">{{ student }}</a>
+                    {% if student.is_upgraded %}
+                    <span class="upgrade-status">(年度切り替え済み)</span>
+                    {% else %}
+                    <span class="upgrade-status">(年度切り替え未実施)</span>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="col">
+            <h4 class="grade-title">高校3年生</h4>
+            <hr>
+            <ul class="student-list">
+                {% for student in grade_12_students %}
+                <li class="student-item {% if student.is_upgraded %}upgraded{% else %}not-upgraded{% endif %}">
+                    <a href="{% url 'owner:update_to_grad' student.pk %}">{{ student }}</a>
+                    {% if student.is_upgraded %}
+                    <span class="upgrade-status">(年度切り替え済み)</span>
+                    {% else %}
+                    <span class="upgrade-status">(年度切り替え未実施)</span>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

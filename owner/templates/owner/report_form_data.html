@@ -1,0 +1,198 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}授業報告書{% endblock %}
+{% block headline %}授業報告書{% endblock %}
+
+{% block content %}
+    <div class="container mt-3">
+        <div class="row">
+            <div class="col-4">
+                <button type="button" onclick="toggleSelection()" class="btn btn-primary mb-3">削除する項目を選択</button>
+                <button type="button" onclick="deleteSelectedRows()" class="btn btn-danger ms-3 mb-3 d-none" id="delete-button">削除</button>
+            </div>
+            <div class="col-2">
+                <input type="date" id="search_day" name="report_date" class="form-control" value="{{ today }}">
+            </div>
+            <div class="col-2">
+                <select name="student_name" id="student" class="form-control">
+                    <option value="">すべての生徒</option>
+                    {% for student in students %}
+                        <option value="{{ student.id }}">{{ student }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-2">
+                <select class="form-select custom-select" id="gradeFilter" name="grade">
+                    <option value="">すべての学年</option>
+                    {% for grade in grades %}
+                        <option value="{{ grade.0 }}">{{ grade.1 }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <form>
+            <table class="table table-bordered table-hover">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>生徒名</th>
+                        <th>学年</th>
+                        <th>科目</th>
+                        <th>日時</th>
+                        <th>単元</th>
+                        <th>次回宿題</th>
+                        <th>宿題をしてきたか</th>
+                        <th>授業中の様子</th>
+                        <th>改善点</th>
+                        <th>編集</th>
+                        <th class="d-none" id="selectAll"><input type="checkbox" name="selectAll" onclick="allSelection()"></th>
+                    </tr>
+                </thead>
+                <tbody id="reportBody">
+                    {% for report in reports %}
+                        <tr class="report" id="{{ report.id }}" data-student-id="{{ report.student.id }}" data-grade="{{ report.student.grade }}" data-day="{{ report.lesson.date|date:'Y-m-d' }}">
+                            <td>{{ report.student }}</td>
+                            <td>{{ report.lesson.get_grade_display }}</td>
+                            <td>{{ report.lesson.get_subject_display }}{% if report.lesson.special %}({{ report.lesson.special.special_lesson.name }}){% endif %}</td>
+                            <td>{{ report.lesson.date }} {{ report.lesson.get_time_display }}</td>
+                            <td>{% if report.unit %}{{ report.unit }}{% else %}{% endif %}</td>
+                            <td>{% if report.homework %}◯{% else %}×{% endif %}</td>
+                            <td>{% if report.homework_done %}◯{% else %}×{% endif %}</td>
+                            <td>{{ report.behavior }}</td>
+                            <td>{{ report.weakness }}</td>
+                            <td><a href="{% url 'owner:report_update' report.id %}" class="btn btn-sm btn-primary">編集</a></td>
+                            <td class="d-none"><input type="checkbox" name="selectedRow" value="{{ forloop.counter }}"></td>
+                        </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="11">データがありません。</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </form>
+    </div>
+{% endblock %}
+
+{% block script %}
+    <script>
+        // ページ読み込み時にローカルストレージからデータを取得してテーブルに表示する
+        window.onload = function() {
+            var deletedRows = JSON.parse(localStorage.getItem('deletedRows')) || [];
+            deletedRows.forEach(function(rowIndex) {
+                var row = document.getElementById('reportBody').rows[rowIndex];
+            });
+        };
+
+        const searchInput = document.getElementById('search_day');
+
+        function filterRows() {
+        const selectedDate = searchInput.value;
+        const rows = document.querySelectorAll('.report');
+
+        rows.forEach(function(row) {
+            const dataDay = row.getAttribute('data-day');
+                if (dataDay === selectedDate) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        
+        // 検索ボックスが変更されたときにフィルタリング関数を呼び出す
+        searchInput.addEventListener('input', filterRows);
+
+        // カレンダーのクリアボタンを検出し、クリックされたときにフィルタリングをリセットする
+        searchInput.addEventListener('change', function(event) {
+            if (event.target.value === '') { // カレンダーの値が空の場合、すべての行を表示する
+                const rows = document.querySelectorAll('.report');
+                rows.forEach(function(row) {
+                    row.style.display = '';
+                });
+                 // 今日の日付を取得
+                const today = new Date().toISOString().split('T')[0];
+                // テキストボックスの値として設定
+                searchInput.value = today;
+            }
+        });
+
+        function filterStudents() {
+        var selectedStudentId = document.getElementById('student').value;
+            var reportRows = document.querySelectorAll('.report');
+
+            reportRows.forEach(function(row) {
+                var studentId = row.getAttribute('data-student-id');
+                if (selectedStudentId === '' || studentId === selectedStudentId) {
+                    row.style.display = 'table-row';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        var grades = {{ grades|safe }};
+
+        function filterGrades() {
+            var selectedGrade = document.getElementById("gradeFilter").value;
+            var rows = document.querySelectorAll(".report");
+
+            rows.forEach(function(row) {
+                var gradeId = row.getAttribute('data-grade');
+
+                if (selectedGrade === "" || gradeId === selectedGrade) {
+                    row.style.display = "table-row";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        }
+
+        document.getElementById("gradeFilter").addEventListener("change", filterGrades);
+        document.getElementById('student').addEventListener('change', filterStudents);
+
+        function toggleSelection() {
+            document.getElementById('delete-button').classList.toggle('d-none');
+            document.getElementById('selectAll').classList.toggle('d-none');
+            var checkboxes = document.querySelectorAll('input[name="selectedRow"]');
+            checkboxes.forEach(function(checkbox) {
+                checkbox.parentNode.classList.toggle('d-none');
+            });
+        }
+
+        function allSelection() {
+            var checkboxes = document.querySelectorAll('input[name="selectedRow"]');
+            var selectAllCheckbox = document.querySelector('input[name="selectAll"]');
+            checkboxes.forEach(function(checkbox) {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
+        }
+
+        function deleteSelectedRows() {
+            var checkboxes = document.querySelectorAll('input[name="selectedRow"]:checked');
+            var deletedRows = [];
+
+            checkboxes.forEach(function(checkbox) {
+                var row = checkbox.closest('tr'); // 対応する行を取得する
+                var reportId = row.getAttribute('id'); // 対応する行のreport.idを取得する
+                deletedRows.push(reportId); // report.idを配列に追加する
+            });
+
+            $.ajax({
+                url: '{% url "owner:report_delete_rows" %}',
+                type: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                contentType: 'application/json', 
+                data: JSON.stringify(deletedRows),
+                success: function(response) {
+                    window.location.href = '{% url "owner:report_form_data" %}';
+                },
+                error: function(xhr, status, error) {
+                }
+            });
+        }
+    </script>
+{% endblock %}

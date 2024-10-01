@@ -1,0 +1,203 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}講師出勤{% endblock %}
+{% block headline %}講師出勤{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-end"><a href="{% url 'owner:fixed_shift_create' %}" class="btn btn-primary">新規追加</a></div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>講師名</th>
+                <th>曜日</th>
+                <th>時間</th>
+                <th>開始日</th>
+                <th>変更</th>
+                <th>終了</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for shift in fixed_shifts %}
+            <tr data-shift-id="{{ shift.id }}">
+                <td>{{ shift.teacher }}</td>
+                <td data-day="{{ shift.day }}">{{ shift.get_day_display }}</td>
+                <td data-time="{{ shift.time }}">{{ shift.get_time_display }}</td>
+                <td>{{ shift.start_date.month }}月{{ shift.start_date.day }}日</td>
+                <td>
+                    <button class="btn btn-danger edit-button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
+                            <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+                            <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+                        </svg>
+                    </button>
+                    <button class="btn btn-warning d-none cancel-button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-circle" viewBox="0 0 16 16">
+                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                        </svg>
+                    </button>
+                    <button class="btn btn-success d-none save-button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-check-lg" viewBox="0 0 16 16">
+                            <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425z"/>
+                        </svg>
+                    </button>
+                </td>
+                <td>
+                    <div class="dropdown">
+                        <button class="btn btn-secondary delete-button dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-trash3" viewBox="0 0 16 16">
+                                <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5M11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47M8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5"/>
+                            </svg>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButton">
+                            <form action="{% url 'owner:fixed_shift_cancel' shift.pk %}" method="post">
+                                {% csrf_token %}
+                                <button type="submit" class="dropdown-item">中止</button>
+                            </form>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="6">
+                    データがありません。
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    var day_choices_json = {{ day_choices_json|safe }};
+    var time_choices_json = {{ time_choices_json|safe }};
+
+    function createSelect(choices) {
+        var select = document.createElement('select');
+        choices.forEach(function (choice) {
+            var option = document.createElement('option');
+            option.text = choice[1];
+            option.value = choice[0];
+            select.appendChild(option);
+        });
+        return select;
+    };
+
+    // deleteドロップダウン用
+    document.querySelectorAll('.delete-button').forEach(function (button){
+        button.addEventListener('click', function () {
+
+        var dropdownMenu = button.nextElementSibling;
+            dropdownMenu.classList.toggle('show');
+        });
+    });
+
+    // 編集ボタンがクリックされたときの処理
+    document.querySelectorAll('.edit-button').forEach(function (button) {
+        button.addEventListener('click', function () {
+            var row = button.closest('tr');
+            var day = row.querySelector('td:nth-child(2)');
+            var time = row.querySelector('td:nth-child(3)');
+
+            var daySelect = createSelect(day_choices_json);
+            daySelect.value = day.dataset.day;
+            day.innerHTML = '';
+            day.appendChild(daySelect);
+
+            var timeSelect = createSelect(time_choices_json);
+            timeSelect.value = time.dataset.time;
+            time.innerHTML = '';
+            time.appendChild(timeSelect);
+
+            var allButtons = document.querySelectorAll('button');
+            allButtons.forEach(function(button) {
+                button.disabled = true;
+            });
+
+            button.classList.add('d-none');
+            row.querySelector('.save-button').classList.remove('d-none');
+            row.querySelector('.save-button').disabled = false;
+            row.querySelector('.cancel-button').classList.remove('d-none');
+            row.querySelector('.cancel-button').disabled = false;
+        });
+    });
+
+    document.querySelectorAll('.cancel-button').forEach(function (button) {
+        button.addEventListener('click', function () {
+            var row = button.closest('tr');
+            var day = row.querySelector('td:nth-child(2)');
+            var time = row.querySelector('td:nth-child(3)');
+
+            day.removeChild(day.querySelector('select'));
+            time.removeChild(time.querySelector('select'));
+
+            day_choices_json.forEach(function(choice) {
+                if (choice[0] === parseInt(day.dataset.day)) {
+                    day.textContent = choice[1];
+                }
+            });
+
+            time_choices_json.forEach(function(choice) {
+                if (choice[0] === parseInt(time.dataset.time)) {
+                    time.textContent = choice[1];
+                }
+            });
+
+            button.classList.add('d-none');
+            row.querySelector('.save-button').classList.add('d-none');
+            row.querySelector('.edit-button').classList.remove('d-none');
+
+            var allButtons = document.querySelectorAll('button');
+            allButtons.forEach(function(button) {
+                button.disabled = false;
+            });
+        });
+    });
+
+    document.querySelectorAll('.save-button').forEach(function (button) {
+        button.addEventListener('click', function () {
+            spinnerOverlay.classList.remove('d-none');
+            button.disabled = true;
+            var row = button.closest('tr');
+            var shiftId = row.getAttribute('data-shift-id');
+    
+            var daySelect = row.querySelector('td:nth-child(2) select');
+            var timeSelect = row.querySelector('td:nth-child(3) select');
+
+            var selectedDay = daySelect.value;
+            var selectedTime = timeSelect.value;
+
+            var csrfToken = "{{ csrf_token }}";
+
+            var data = {
+                'shift_id': shiftId,
+                'day': selectedDay,
+                'time': selectedTime
+            };
+
+            jsonData = JSON.stringify(data);
+            console.log(jsonData)
+
+            // Ajaxリクエストを送信
+            $.ajax({
+            type: 'POST',
+            url: '{% url "owner:fixed_shift_update" %}',
+            data: {
+                'csrfmiddlewaretoken': '{{ csrf_token }}',
+                'json_data': jsonData,
+            },
+            success: function(response) {
+                window.location.href = response.redirect_url;
+            },
+            error: function(xhr, status, error) {
+                window.location.href = "{% url 'owner:fixed_shift_list' %}";
+            }
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends 'parent/base.html' %}
+
+{% block title %}アカウント{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card">
+        <div class="card-header">
+            <h3>アカウント情報</h3>
+        </div>
+        <div class="card-body">
+            <p class="card-text"><strong>氏名:</strong> {{ user }}</p>
+            <p class="card-text"><strong>ユーザーネーム:</strong> {{ user.username }}</p>
+            <p class="card-text"><strong>メールアドレス:</strong> {{ user.email }}</p>
+            <p class="card-text"><strong>登録日時:</strong> {{ user.date_joined }}</p>
+            <a href="{% url 'parent:account_change_password' user.parent_profile.current_student.pk %}" class="btn btn-primary">パスワードの変更</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,114 @@
+# docker-composeのバージョンを指定
+version: "3.9"
+
+# db(Postgres),app(Django)のコンテナを作成
+services:
+
+  # Posegresql
+  db:
+    container_name: postgres
+    build:
+      context: .
+      dockerfile: containers/postgres/Dockerfile
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: pg_isready -U "${POSTGRES_USER:-postgres}" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    # コンテナ内の環境変数を.env.prodを使って設定
+    env_file:
+      - .env.prod
+
+  # Django
+  app:
+    container_name: app
+    build:
+      context: .
+      dockerfile: containers/django/Dockerfile
+    volumes:
+      - .:/code
+      - ./db_data:/db_data
+      - ./static:/static
+    # 8000番ポートをNginx側が接続できるよう開く
+    expose:
+      - "8000"
+    # シェルスクリプトを実行
+    command: sh -c "/usr/local/bin/entrypoint.sh"
+    # コンテナ内の環境変数を.env.prodを使って設定
+    env_file:
+      - .env.prod
+    depends_on:
+      - db
+
+  # Nginx
+  web:
+    # コンテナ名をwebに指定
+    container_name: web
+    # NginxのDockerfileをビルドする
+    build:
+      # ビルドコンテキストはカレントディレクトリ
+      context: .
+      dockerfile: containers/nginx/Dockerfile
+    restart: always
+    # ボリュームを指定
+    # ローカルの/staticをコンテナの/staticにマウントする
+    volumes:
+      - ./static:/static
+      - /var/www/html:/var/www/html
+      - /etc/letsencrypt:/etc/letsencrypt
+    # ローカルの80番ボートをコンテナの80番ポートとつなぐ
+    ports:
+      - "80:80"
+      - "443:443"
+    env_file:
+      - .env.prod
+    # 先にappを起動してからwebを起動する
+    depends_on:
+      - app
+
+  # Redis
+  redis:
+    container_name: redis
+    image: redis:latest
+    ports:
+      - "6379:6379"
+
+  backup:
+    container_name: backup
+    image: postgres:15.2
+    depends_on:
+      - db
+    volumes:
+      - ./backup:/backup
+    command: >
+      bash -c "while true; do
+        PGPASSWORD=$$POSTGRES_PASSWORD pg_dump -h postgres -U $$POSTGRES_USER -Fc $$POSTGRES_NAME > /backup/$$(date +%Y-%m-%d-%H-%M-%S).dump
+        echo ""Backup done at $$(date +%Y-%m-%d_%H:%M:%S)""
+        ls -1 /backup/*.dump | head -n -2 | xargs rm -f
+        sleep 604800
+      done"
+    env_file: .env.prod
+
+  restore:
+    container_name: restore
+    build:
+      # ビルドコンテキストはカレントディレクトリ
+      context: .
+      dockerfile: containers/restore/Dockerfile
+    depends_on:
+      - db
+    volumes:
+      - ./backup:/backup
+      - .:/code
+    env_file: .env.prod
+    profiles:
+      - manual
+
+volumes:
+  db_data:
+  static:

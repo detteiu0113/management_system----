@@ -1,0 +1,50 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}英単語テスト{% endblock %}
+{% block headline %}<a href="{% url 'owner:student_list' %}">生徒情報</a>><a href="{% url 'owner:document_select' pk %}">{{ student }}の資料</a>>英単語テスト{% endblock %}
+
+{% block style %}
+<style>
+    p {
+        margin: 0;
+        padding: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <a href="{% url 'owner:vocabulary_test_edit' pk %}"><button class="btn btn-danger mb-3">編集</button></a>
+    {% regroup test_results by category as category_list %}
+    {% for category in category_list %}
+    <div class="table-responsive mb-5">
+        <table class="table table-bordered">
+            <thead style="background-color: #343a40; color: #fff;">
+                <tr>
+                    <th>{{ category.list.0.get_category_display }}</th>
+                    <th style="width: 23%;">第1回</th>
+                    <th style="width: 23%;">第2回</th>
+                    <th style="width: 23%;">第3回</th>
+                    <th style="width: 23%;">第4回</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% regroup category.list by program as program_list %}
+                {% for program in program_list %}
+                <tr>
+                    <td style="height: 65px;">program{% cycle 1 2 3 4 5 6 7 8 9 10 %}</td>
+                    {% for result in program.list %}
+                    <td>{% if result.date %}
+                        <p>{{ result.date }}</p>
+                        <p>{{ result.score }} / {{ result.fullscore }}点中</p>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

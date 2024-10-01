@@ -1,0 +1,125 @@
+{% extends 'owner/base.html' %}
+{% load humanize %}
+
+{% block title %}新規登録{% endblock %}
+{% block headline %}<a href="{% url 'owner:special_list' %}">講習授業</a>><a href="{% url 'owner:special_detail' pk %}">詳細</a>>予定表印刷{% endblock %}
+
+{% block style %}
+<style>
+    .subject {
+        font-weight: bold;
+        color: red!important;
+    }
+
+    .diagonal-td {
+        background-image: linear-gradient(to right top, transparent calc(50% - 0.5px), #999 50%, #999 calc(50% + 0.5px), transparent calc(50% + 1px));
+    }
+
+    .main-content {
+        width: 210mm!important;
+        min-width: 210mm!important;
+    }
+
+    @media print {
+        body {
+            overflow-y: hidden;
+            height: auto !important;
+            min-height: auto !important;
+        }
+        table {
+            page-break-after: always;
+            height: auto;
+        }
+
+        #sidebar {
+            display: none;
+        }
+
+        #printButton {
+            display: none;
+        }
+
+        .main-content {
+            margin: 0;
+            padding: 0;
+        }
+
+        .headline-design {
+            display: none;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<button id="printButton" class="btn btn-secondary mb-3">印刷(A4縦向き推奨)</button>
+{% for student in studnets %}
+<h4>{{ student }} {{ special_lesson.name }}</h4>
+<table class="table table-bordered mt-3" data-student-id="{{ student.id }}">
+    <thead>
+        <tr>
+            <th>日付</th>
+            <th>行事など</th>
+            {% for time in time_choices %}
+            <th>{{ time.1 }}</th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for date in date_list %}
+        <tr data-date="{{ date|date:'Y-m-d' }}">
+            <th>{{ date.month }}/{{ date.day }}({{ date|date:'D' }})</th>
+            <td class="event"></th>
+            {% for time in time_choices %}
+            <td class="subject" data-time="{{ time.0 }}"></td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endfor %}
+{% endblock %}
+
+{% block script %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var lessonData = {{ json_data|safe }};
+
+        lessonData.forEach(function(lesson) {
+            // 各レッスンの日付と時間に対応する <tr> 要素を取得
+            var table = document.querySelector('table[data-student-id="' + lesson.student_id + '"]');
+            var tr = table.querySelector('tr[data-date="' + lesson.date + '"]');
+            var td = tr.querySelector('td[data-time="' + lesson.time + '"]');
+            // 科目情報を td 要素に埋め込む
+            td.textContent = lesson.subject;
+        });
+
+        var eventData = {{ events|safe }};
+
+        eventData.forEach(function(event) {
+            // 各レッスンの日付と時間に対応する <tr> 要素を取得
+            var tables = document.querySelectorAll('table');
+            tables.forEach(function(table) {
+                var tr = table.querySelector('tr[data-date="' + event.date + '"]');
+                var td = tr.querySelector('.event');
+                if (td.textContent.trim()) {
+                    var textNode = document.createTextNode(`, ${event.title}`);
+                    td.appendChild(textNode);
+                } else {
+                    td.textContent = event.title;
+                }
+                if (event.is_closure) {
+                    td.classList.add('text-danger', 'fw-bold')
+                    tr.querySelectorAll('.subject').forEach(function(td) {
+                        td.classList.add('diagonal-td')
+                    });
+                }
+            })
+        });
+
+        document.getElementById('printButton').addEventListener('click', function() {
+            window.print();
+        });
+    });
+</script>
+{% endblock %}

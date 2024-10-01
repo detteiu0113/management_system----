@@ -1,0 +1,26 @@
+{% extends 'parent/base.html' %}
+
+{% block title %}特別講習一覧{% endblock %}
+
+{% block style %}
+<style>
+    p {
+        margin-bottom: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <ul class="list-group">
+        {% for special_lesson in special_lessons %}
+        <a href="{% url 'parent:special_lesson_request' user.parent_profile.current_student.pk special_lesson.pk %}" class="text-decoration-none">
+            <li class="list-group-item text-primary">
+                <p>{{ special_lesson.name }}</p>
+                <p>{{ special_lesson.start_date|date:"Y年m月d日" }}-{{ special_lesson.end_date|date:"Y年m月d日" }}</p>
+            </li>
+        </a>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

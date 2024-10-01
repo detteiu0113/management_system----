@@ -1,0 +1,612 @@
+{% extends 'owner/base.html' %}
+{% load custom_tags %}
+
+{% block title %}{{ year }}年第{{ week }}週{% endblock %}
+{% block headline %}<a href="{% url 'owner:shift_select' %}">シフト管理</a>>{{ year }}年第{{ week }}週{% endblock %}
+
+{% block head %}
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
+{% endblock %}
+
+{% block style %}
+<style>
+    td {
+        padding: 0!important;
+    }
+
+    hr {
+        margin: 0!important;
+        color: white;
+    }
+
+    .td-row-upper, .td-row-lower {
+        margin: 0!important;
+        width: 100%;
+    }
+
+    .td-row-lower {
+        border: 1px black solid;
+        height: 28px;
+    }
+
+    .td-col {
+        border: 1px black solid;
+        padding: 0!important;
+        height: 52px;
+    }
+
+    .hoverable-item {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .hoverable-item:hover .full-width-button {
+      display: block;
+    }
+
+    .full-width-button {
+      display: none;
+      position: absolute;
+      height: 100%;
+      width: 100%;
+      bottom: 0;
+      left: 0;
+      padding: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      border: none;
+      color: white;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+    <nav class="d-flex justify-content-center">
+        <ul class="pagination">
+            {% for date in dates %}
+                <li class="page-item"><a class="page-link {% if forloop.counter == day %}active{% endif %}" href="{% url 'owner:shift_detail' year week forloop.counter %}">{{ date }}</a></li>
+            {% endfor %}
+        </ul>
+    </nav>
+    {% if shifts %}
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col d-flex">
+                    <button class="btn btn-secondary" id="editButton">編集</button>
+                    <a class="btn btn-secondary ms-2" id="reloadButton" href="{% url 'owner:shift_reload' year week 1 %}">更新</a>
+                </div>
+                {% if special_lesson %}
+                <div class="col-auto ms-auto">
+                    <span>＊{{ special_lesson.name }}</span>
+                </div>
+                {% endif %}
+            </div>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        {% for time in time_choices %}
+                        <th class="text-center">
+                            {{ time }}
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                {% regroup shifts by room as room_list %}
+                {% for room in room_list %}
+                        <tr>
+                            <th class="text-center">{{ room.grouper }}</th>
+                            {% for shift in room.list %}
+                            <td>
+                                <div class="row td-row-upper">
+                                    {% for i in '1234' %}
+                                    {% get_lesson shift i as lesson_obj %}
+                                    <div class="col-6 td-col text-center draggable droppable lesson lesson-{{ shift.time }}" id="{{ shift.lessons.id }}-{{ i }}" data-lesson-id="{{ lesson_obj.id }}">
+                                        {% if lesson_obj %}
+                                            <div class="w-100 h-100 
+                                            {% if not lesson_obj %}
+                                                bg-white
+                                            {% elif lesson_obj.is_rescheduled %}
+                                                bg-warning
+                                            {% elif lesson_obj.is_temporaly %}
+                                                bg-secondary
+                                            {% elif lesson_obj.is_regular %}
+                                                bg-white
+                                            {% else %}
+                                                bg-info
+                                            {% endif %}
+                                                ">
+                                                <div class="d-flex justify-content-center">
+                                                    <span>
+                                                        {{ lesson_obj.student }}
+                                                    </span>
+                                                    <div class="dropdown">
+                                                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-expanded="false"></a>
+                                                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuLink">
+                                                            <li><a class="dropdown-item transfer-button" href="{% url 'owner:shift_absence_lesson' lesson_obj.pk i 0 %}">{% if lesson_obj.is_regular %}振替{% elif lesson_obj.is_temporaly %}振替{% else %}振替/取消{% endif %}</a></li>
+                                                            <li><a class="dropdown-item transfer-button unauthorized" href="{% url 'owner:shift_absence_lesson' lesson_obj.pk i 1 %}">{% if lesson_obj.is_regular %}無断欠席{% elif lesson_obj.is_temporaly %}無断欠席/取消{% else %}無断欠席{% endif %}</a></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                                <span>
+                                                    {{ lesson_obj.get_grade_display }}
+                                                    {{ lesson_obj.get_subject_display }}
+                                                </span>
+                                            </div>
+                                        {% else %}
+                                            <div class="hoverable-item">
+                                                <button type="button" class="full-width-button transfer-lesson-button" data-date="{{ date|date:'Y-m-d' }}" data-room="{{ shift.room }}" data-time="{{ shift.time }}">授業を追加</button>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+                                </div>                                                           
+                                <div class="row td-row-lower justify-content-center draggable droppable teacher teahcer-{{ shift.time }}" id="{{ shift.id }}" data-teacher_shift-id="{{ shift.teacher_shift.id }}">
+                                    {% if shift.teacher_shift %}
+                                        <div class="d-flex justify-content-center">
+                                            <span>{{ shift.teacher_shift.teacher }}</span>
+                                            <div class="dropdown">
+                                                <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-expanded="false"></a>
+                                                <ul class="dropdown-menu" aria-labelledby="dropdownMenuLink">
+                                                    <li><a class="dropdown-item teacher-absence-button delete" href="{% url 'owner:shift_teacher_absence' shift.teacher_shift.pk %}">取消</a></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        <div class="hoverable-item {% if shift.lessons.lesson1 or shift.lessons.lesson2 or shift.lessons.lesson3 or shift.lessons.lesson4 %}bg-danger{% endif %}">
+                                            <button type="button" class="full-width-button teacher-add-button" data-date="{{ date|date:'Y-m-d' }}" data-room="{{ shift.room }}" data-time="{{ shift.time }}">講師を追加</button>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            {% endfor %}
+                        </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            <div id="sidebar-right" class="bg-light" style="width: 0; position: fixed; top: 0; right: 0; height: 100%; overflow-x: hidden; transition: 0.5s;">
+                <button id="closeSidebar" class="btn btn-danger m-3">Close</button>
+                <form class="mt-5 p-3 d-none" method="post" id="teacher-add-form" action="{% url 'owner:shift_teacher_add' %}">
+                    {% csrf_token %}
+                    <div>
+                        <label for="{{ teacher_add_form.teacher.id_for_label }}">{{ teacher_add_form.teacher.label }}</label>
+                        {{ teacher_add_form.teacher }}
+                    </div>
+                    {% if special_lesson %}
+                    <div>
+                        <label for="{{ teacher_add_form.special_teacher.id_for_label }}">{{ teacher_add_form.special_teacher.label }}</label>
+                        {{ teacher_add_form.special_teacher }}
+                    </div>
+                    {% endif %}
+                    <div>
+                        <label for="{{ teacher_add_form.room.id_for_label }}">{{ teacher_add_form.room.label }}</label>
+                        {{ teacher_add_form.room }}
+                    </div>
+                    <div>
+                        <label for="{{ teacher_add_form.time.id_for_label }}">{{ teacher_add_form.time.label }}</label>
+                        {{ teacher_add_form.time }}
+                    </div>
+                    <div>
+                        <label for="{{ teacher_add_form.date.id_for_label }}">{{ teacher_add_form.date.label }}</label>
+                        {{ teacher_add_form.date }}
+                    </div>
+                    <div>
+                        <div class="mt-3" id="error-container"></div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </form>
+                <form class="mt-5 p-3 d-none" method="post" id="transfer-lesson-form" action="{% url 'owner:shift_transfer_lesson' %}">
+                    {% csrf_token %}
+                    <div class="lesson-container">
+                        <label for="{{ transfer_lesson_form.lesson.id_for_label }}">{{ transfer_lesson_form.lesson.label }}</label>
+                        {{ transfer_lesson_form.lesson }}
+                    </div>
+                    {% if special_lesson %}
+                    <div class="lesson-container">
+                        <label for="{{ transfer_lesson_form.special_lesson.id_for_label }}">{{ transfer_lesson_form.special_lesson.label }}</label>
+                        {{ transfer_lesson_form.special_lesson }}
+                    </div>
+                    <div class="lesson-container">
+                        <label for="{{ transfer_lesson_form.special_lesson_others.id_for_label }}">{{ transfer_lesson_form.special_lesson_others.label }}</label>
+                        {{ transfer_lesson_form.special_lesson_others }}
+                    </div>
+                    {% endif %}
+                    <div class="toggle-container d-none">
+                        <label for="{{ transfer_lesson_form.student.id_for_label }}">{{ transfer_lesson_form.student.label }}</label>
+                        {{ transfer_lesson_form.student }}
+                    </div>
+                    <div class="toggle-container d-none">
+                        <label for="{{ transfer_lesson_form.subject.id_for_label }}">{{ transfer_lesson_form.subject.label }}</label>
+                        <select name="{{ transfer_lesson_form.subject.html_name }}" id="{{ transfer_lesson_form.subject.id_for_label }}" class="form-select">
+                            <option value="">---------</option>
+                            {% for value, label in transfer_lesson_form.subject.field.choices %}
+                                <option value="{{ value }}"{% if transfer_lesson_form.subject.value == value %} selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="button" id="toggle-button" class="mt-3 w-100 btn btn-secondary">臨時授業の追加</button>
+                    <div>
+                        <label for="{{ transfer_lesson_form.date.id_for_label }}">{{ transfer_lesson_form.date.label }}</label>
+                        {{ transfer_lesson_form.date }}
+                    </div>
+                    <div>
+                        <label for="{{ transfer_lesson_form.room.id_for_label }}">{{ transfer_lesson_form.room.label }}</label>
+                        {{ transfer_lesson_form.room }}
+                    </div>
+                    <div>
+                        <label for="{{ transfer_lesson_form.time.id_for_label }}">{{ transfer_lesson_form.time.label }}</label>
+                        {{ transfer_lesson_form.time }}
+                    </div>
+                    <button type="submit" class="btn btn-primary mt-3" id="submitButton">保存</button>
+                </form>
+            </div>
+        </div>
+    {% else %}
+        <h1 class="text-center" style="color: red; font-size: 80px; margin-top: 250px;">休校日</h1>
+    {% endif %}
+{% endblock %}
+
+{% block script %}
+<script>
+    function enableDragAndDrop() {
+        $(".draggable").draggable({
+            revert: "invalid",
+            containment: "document",
+            helper: function() {
+                return $(this).clone().css({
+                    width: $(this).width(),
+                    height: $(this).height()
+                });
+            },
+            cursor: "move",
+            create: function(event, ui) {
+                $(this).css('z-index', 1000);
+            }
+        });
+    
+        $(".droppable").droppable({
+        accept: function(draggable) {
+            return $(this).hasClass(draggable.attr("class"));
+            },
+            drop: function(event, ui) {
+                var draggable = ui.draggable;
+                var droppable = $(this);
+                var draggableId = draggable.attr("id");
+                var droppableId = droppable.attr("id");
+                var draggableOffset = draggable.offset();
+                var droppableOffset = droppable.offset();
+                draggable.offset(droppableOffset);
+                droppable.offset(draggableOffset);
+                draggable.attr("id", droppableId);
+                droppable.attr("id", draggableId);
+            }
+        });
+    
+        $(".draggable").draggable("enable");
+        $(".droppable").droppable("enable");
+    }
+    
+    function handleEditButtonClick() {
+        enableDragAndDrop();
+        const editButton = document.getElementById('editButton');
+        editButton.textContent = "保存";
+        editButton.removeEventListener('click', handleEditButtonClick);
+        editButton.addEventListener('click', handleSaveButtonClick);
+
+        const hoverableItems = document.querySelectorAll('.hoverable-item');
+            hoverableItems.forEach(item => {
+                // hoverable-item内の.full-width-buttonのスタイルを変更して非表示にする
+                item.querySelector('.full-width-button').style.display = 'none';
+        });
+    }
+
+    const reloadBtn=document.getElementById('reloadButton');
+    reloadBtn.addEventListener('click', function() {
+        spinnerOverlay.classList.remove('d-none');
+    });
+    
+    function handleSaveButtonClick() {
+        spinnerOverlay.classList.remove('d-none');
+        const editButton = document.getElementById('editButton');
+        editButton.disabled = true;
+        const data = {
+        lessons: [],
+        teachers: []
+        };
+    
+        const draggableLessonElements = document.querySelectorAll('.draggable.droppable.lesson');
+        const draggableTeacherElements = document.querySelectorAll('.draggable.droppable.teacher');
+    
+        draggableLessonElements.forEach(element => {
+            const id = element.getAttribute('id');
+            const lessonId = element.getAttribute('data-lesson-id');
+            data.lessons.push({ id: id, lessonId: lessonId });
+        });
+    
+        draggableTeacherElements.forEach(element => {
+            const id = element.getAttribute('id');
+            const teacherId = element.getAttribute('data-teacher_shift-id');
+            data.teachers.push({ id: id, teacherId: teacherId });
+        });
+    
+        fetch('{% url "owner:shift_update" %}', {
+            method: 'POST',
+            body: JSON.stringify(data),
+            headers:{
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                // 現在のURLを取得
+                const currentUrl = window.location.href;
+                // 現在のURLにリダイレクト
+                window.location.href = currentUrl;
+                editButton.disabled = false;
+                editButton.removeEventListener('click', handleSaveButtonClick);
+                editButton.addEventListener('click', handleEditButtonClick);
+            };
+        });
+    
+        $(".draggable").draggable("disable");
+        $(".droppable").droppable("disable");
+    
+        const hoverableItems = document.querySelectorAll('.hoverable-item');
+        hoverableItems.forEach(item => {
+            item.querySelector('full-width-button').style.display = 'block';
+        });
+    }
+
+    function handleTransferButtonClick(event) {
+        event.preventDefault();
+        var message;
+        if (this.classList.contains('unauthorized')) {
+            message = "この授業を欠席にしますか？(授業は振替されません)";
+        } else {
+            message = "この授業を欠席にしますか？(授業は振替されます)";
+        }
+        if (confirm(message)) {
+            window.location.href = this.href;
+        }
+    }
+
+    function handleAbsenceButtonClick(event) {
+        event.preventDefault();
+        if (confirm("このシフトを削除しますか？")) {
+            window.location.href = this.href;
+        }
+    }
+
+    function openSidebar() {
+        var sidebar = document.getElementById('sidebar-right');
+        sidebar.style.width = '350px';
+    }
+
+    function closeSidebar() {
+        var sidebar = document.getElementById('sidebar-right');
+        sidebar.style.width = '0';
+    }
+
+    $(document).ready(function(){
+        $.fn.showOption = function() {
+            this.each(function() {
+                if( this.tagName == "OPTION" ) {
+                    var opt = this;
+                    if( $(this).parent().get(0).tagName == "SPAN" ) {
+                        var span = $(this).parent().get(0);
+                        $(span).replaceWith(opt);
+                        $(span).remove();
+                    }
+                    opt.disabled = false;
+                    $(opt).show();
+                }
+            });
+            return this;
+        }
+        $.fn.hideOption = function() {
+            this.each(function() {
+                if( this.tagName == "OPTION" ) {
+                    var opt = this;
+                    if( $(this).parent().get(0).tagName == "SPAN" ) {
+                        var span = $(this).parent().get(0);
+                        $(span).hide();
+                    } else {
+                        $(opt).wrap("<span>").hide();
+                    }
+                    opt.disabled = true;
+                }
+            });
+            return this;
+        }
+    });
+        
+    function setTeacherAddFormDefault(dataset) {
+        var values = {{ json_data|safe }}[dataset.time]['teachers'];
+        $('#id_special_teacher option').each(function() {
+            $(this).showOption()
+            var optionValue = $(this).val();
+            if (optionValue !== '' && !values.includes(parseInt(optionValue))) {
+                $(this).hideOption();
+            }
+        });
+
+        $('#id_special_teacher_others option').each(function() {
+            $(this).showOption()
+            var optionValue = $(this).val();
+            if (optionValue !== '' && values.includes(parseInt(optionValue))) {
+                $(this).hideOption();
+            }
+        });
+
+        document.getElementById('id_date').value = dataset.date;
+        document.getElementById('id_room').value = dataset.room;
+        document.getElementById('id_time').value = dataset.time;
+    };
+
+    function setTransferLessonFormDefault(dataset) {
+        var values = {{ json_data|safe }}[dataset.time]['students'];
+        
+        $('#special-lesson-select option').each(function() {
+            $(this).showOption()
+            var optionValue = $(this).data("student-id");
+            if (optionValue !== '' && !values.includes(parseInt(optionValue))) {
+                $(this).hideOption();
+            }
+        });
+        document.getElementById('date-input').value = dataset.date;
+        document.getElementById('room-select').value = dataset.room;
+        document.getElementById('time-select').value = dataset.time;
+    };
+
+    function setFormVisibility(formType) {
+        const teacherAddForm = document.getElementById('teacher-add-form');
+        const transferLessonForm = document.getElementById('transfer-lesson-form');
+
+        if (formType === 'teacher') {
+            teacherAddForm.classList.remove('d-none');
+            transferLessonForm.classList.add('d-none');
+        } else if (formType === 'lesson') {
+            transferLessonForm.classList.remove('d-none');
+            teacherAddForm.classList.add('d-none');
+        }
+    };
+
+    const editButton = document.getElementById('editButton');
+    editButton.addEventListener('click', handleEditButtonClick);
+    
+    const transferButtons = document.querySelectorAll(".transfer-button");
+    transferButtons.forEach(button => {
+        button.addEventListener('click', handleTransferButtonClick);
+    });
+
+        
+    const teacherAbsenceButtons = document.querySelectorAll(".teacher-absence-button");
+    teacherAbsenceButtons.forEach(button => {
+        button.addEventListener('click', handleAbsenceButtonClick);
+    });
+
+    const teacherAddButtons = document.querySelectorAll(".teacher-add-button");
+    teacherAddButtons.forEach(button => {
+        const dataset = button.dataset
+        button.addEventListener('click', function() {
+            setFormVisibility('teacher');
+            setTeacherAddFormDefault(dataset)
+            openSidebar();
+        });
+    });
+
+    const transferLessonButtons = document.querySelectorAll(".transfer-lesson-button");
+    transferLessonButtons.forEach(button => {
+        const dataset = button.dataset
+        button.addEventListener('click', function() {
+            setFormVisibility('lesson');
+            setTransferLessonFormDefault(dataset)
+            openSidebar();
+        });
+    });
+
+    const closeSidebarButton = document.getElementById('closeSidebar');
+    closeSidebarButton.addEventListener('click', closeSidebar);
+
+    document.addEventListener('DOMContentLoaded', function() {
+
+        const dateField = document.getElementById('date-input');
+        const roomField = document.getElementById('room-select');
+        const timeField = document.getElementById('time-select');
+
+        dateField.disabled = true;
+        roomField.disabled = true;
+        timeField.disabled = true;
+
+        const studentAddForm = document.getElementById('transfer-lesson-form');
+        studentAddForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            dateField.disabled = false;
+            roomField.disabled = false;
+            timeField.disabled = false;
+            this.submit();
+        })
+
+        const teacherDateField = document.getElementById('id_date');
+        const teacherRoomField = document.getElementById('id_room');
+        const teacherTimeField = document.getElementById('id_time');
+
+        teacherDateField.disabled = true;
+        teacherRoomField.disabled = true;
+        teacherTimeField.disabled = true;
+
+        const teacherAddForm = document.getElementById('teacher-add-form');
+        teacherAddForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            {% if special_lesson %} // 講習期間のみバリデーション
+            const teacherSelect = document.getElementById('{{ teacher_add_form.teacher.id_for_label }}');
+            const specialTeacherSelect = document.getElementById('{{ teacher_add_form.special_teacher.id_for_label }}');
+            const specialTeacherOthersSelect = document.getElementById('{{ teacher_add_form.special_teacher_others.id_for_label }}');
+            const errorContainer = document.getElementById('error-container');
+            errorContainer.innerHTML = '';
+
+            if (!teacherSelect.value && !specialTeacherSelect.value) {
+                const errorMessage = document.createElement('p');
+                errorMessage.textContent = '臨時講師、出勤可能講師(講習)のいずれかを選択してください';
+                errorContainer.appendChild(errorMessage);
+                return;
+            }
+
+            if (teacherSelect.value && specialTeacherSelect.value) {
+                const errorMessage = document.createElement('p');
+                errorMessage.textContent = '臨時講師、出勤可能講師(講習)のいずれか選択してください';
+                errorContainer.appendChild(errorMessage);
+                return;
+            }
+            {% endif %}
+
+            teacherDateField.disabled = false;
+            teacherRoomField.disabled = false;
+            teacherTimeField.disabled = false;
+
+            this.submit();
+        });
+
+        const toggleButton = document.getElementById('toggle-button');
+        const specialLessonContainers = document.querySelectorAll('.lesson-container');
+        const toggleContainers = document.querySelectorAll('.toggle-container');
+
+        toggleButton.addEventListener('click', function() {
+            specialLessonContainers.forEach(container => {
+                container.classList.toggle('d-none');
+                let selectElement = container.querySelector('select');
+                if (!container.classList.contains('d-none')) {
+
+                } else {
+                    selectElement.value = "";
+                    selectElement.required = false;
+                }
+            });
+            toggleContainers.forEach(container => {
+                container.classList.toggle('d-none');
+                let selectElement = container.querySelector('select');
+                if (!container.classList.contains('d-none')) {
+                    selectElement.required = true;
+                } else {
+                    selectElement.value = "";
+                    selectElement.required = false;
+                }
+            });
+            if (this.textContent == '臨時授業の追加') {
+                this.textContent = '臨時授業の追加を中止'
+            } else {
+                this.textContent = '臨時授業の追加'
+            }
+        });
+
+        submitButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                spinnerOverlay.classList.add('d-none');
+            });
+        });
+    });
+</script>
+{% endblock %}

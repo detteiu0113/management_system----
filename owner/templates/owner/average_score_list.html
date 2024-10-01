@@ -1,0 +1,85 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}学校テスト{% endblock %}
+{% block headline %}データ入力>学校テスト{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-3">
+        <div class="col">
+            <form method="get" id="filter-form">
+                <select id="year" name="year" class="form-select" onchange="this.form.submit()">
+                    <option value="">年度を絞り込む</option>
+                    {% for year in available_years %}
+                        <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+        <div class="col">
+            <select class="form-select custom-select" id="schoolFilter" name="school">
+                <option value="">学校を絞り込む</option>
+                {% for school in schools %}
+                    <option value="{{ school.0 }}">{{ school.1 }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col">
+            <select class="form-select custom-select" id="gradeFilter" name="grade">
+                <option value="">学年を絞り込む</option>
+                {% for grade in grades %}
+                    <option value="{{ grade.0 }}">{{ grade.1 }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col ms-5">
+            <a href="{% url 'owner:average_score_create' %}" class="btn btn-secondary">新規登録</a>
+        </div>
+    </div>
+    <ul class="list-group">
+        {% for average_score in average_scores %}
+            <li class="list-group-item" data-grade="{{ average_score.grade }}" data-school="{{ average_score.school }}">
+                <div class="row align-items-center">
+                    <div class="col">{{ average_score.test_name }}</div>
+                    <div class="col">{{ average_score.get_school_display }}</div>
+                    <div class="col">{{ average_score.get_grade_display }}</div>
+                    <div class="col">{{ average_score.date }}</div>
+                    <div class="col"><a href="{% url 'owner:average_score_update' average_score.pk %}" class="btn btn-primary">平均点編集</a></div>
+                    <div class="col"><a href="{% url 'owner:test_result_form' average_score.pk %}" class="btn btn-danger">一括入力</a></div>
+                </div>
+            </li>
+        {% empty %}
+        <li class="list-group-item">データがありません。</li>
+
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        function filterItems() {
+            var selectedGrade = document.getElementById("gradeFilter").value;
+            var selectedSchool = document.getElementById("schoolFilter").value;
+            var rows = document.querySelectorAll(".list-group-item");
+        
+            rows.forEach(function(row) {
+                var gradeCell = row.dataset.grade;
+                var schoolCell = row.dataset.school;
+        
+                if ((selectedGrade === "" || gradeCell === selectedGrade) &&
+                    (selectedSchool === "" || schoolCell === selectedSchool)) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        }
+        document.getElementById("gradeFilter").addEventListener("change", filterItems);
+        document.getElementById("schoolFilter").addEventListener("change", filterItems);
+        filterItems();
+    });
+</script>
+{% endblock %}
+

@@ -1,0 +1,166 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}シフト管理{% endblock %}
+{% block headline %}シフト管理{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="//code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+{% endblock %}
+
+{% block style %}
+<style>
+    .custom-card {
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      margin-top: 20px;
+    }
+
+    .custom-card .card-body {
+      padding: 20px;
+    }
+
+    .custom-card .card-title {
+      color: #333;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 0;
+    }
+
+    .custom-card .list-group-item {
+      background-color: #f8f9fa;
+      border: none;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .custom-card .list-group-item:last-child {
+      border-bottom: none;
+    }
+    .spinner {
+        border: 4px solid rgba(0, 0, 0, 0.1);
+        border-left-color: #333;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: auto;
+        margin-top: 50px;
+    }
+
+    /* スピナーを回転させるアニメーション */
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* コンテンツをグレーアウトするためのスタイル */
+    .overlay {
+        position: fixed;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="shift-create-container d-flex justify-content-between mt-3">
+        <a href="{% url 'owner:shift_template' %}" class="btn btn-secondary d-flex justify-content-center align-items-center">テンプレート</a>
+        <div class="shift-container" style="width:25%;">
+            <div class="input-group mb-1">
+                <input type="text" class="form-control" id="datepicker" name="datepicker" placeholder="週を選択" aria-label="Select week" aria-describedby="submitWeekLink">
+                <div class="input-group-append">
+                  <button class="btn btn-outline-secondary" type="button" id="submitWeekButton" disabled>作成</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card custom-card">
+        <div class="card-body">
+        <h5 class="mb-3">シフト一覧</h5>
+        <ul class="list-group list-group-flush">
+            {% for year_week in week_list %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{ year_week.year }}年第{{ year_week.week }}週 ({{ year_week.monday }}-{{ year_week.friday }})
+                <div class="d-flex">
+                    <a class="btn btn-primary text-white ms-2" href="{% url 'owner:shift_detail' year_week.year year_week.week 1 %}">編集</a>
+                    <form class="delete-form ms-2" action="{% url 'owner:shift_delete' year_week.year year_week.week %}" method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="delete" value="true">
+                        <button type="submit" class="delete-button btn btn-danger">削除</button>
+                    </form>
+                </div>
+            </li>
+            {% empty %}
+            <li class="list-group-item">
+                シフトがありません。
+            </li>
+            {% endfor %}
+        </ul>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block script %}
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
+<script src="https://rawgit.com/jquery/jquery-ui/master/ui/i18n/datepicker-ja.js"></script>
+<script>
+    // フォームが送信される際にローディングスピナーを表示する関数
+function showSpinner() {
+    document.getElementById("submitWeekButton").style.display = "block";
+}
+
+// フォーム送信完了後にローディングスピナーを非表示にする関数
+function hideSpinner() {
+    document.getElementById("submitWeekButton").style.display = "none";
+}
+
+    function redirectToShiftDetail(year, week) {
+        // デフォルトで月曜日を表示
+        var url = `detail/${year}/${week}/1/`
+        window.location.href = url;
+    }
+
+    $( function() {
+        var year, week;
+
+        $( "#datepicker" ).datepicker({
+            showWeek: true,
+            firstDay: 1,
+            onSelect: function(dateText, inst) {
+                var date = $(this).datepicker('getDate');
+                var monday = new Date(date.getFullYear(), date.getMonth(), date.getDate() - date.getDay() + 1);
+                var friday = new Date(date.getFullYear(), date.getMonth(), date.getDate() - date.getDay() + 5);
+                //　年度切り替え時に対応するため
+                year = friday.getFullYear();
+                week = $.datepicker.iso8601Week(date);
+                // 月曜日の日を表示
+                $(this).val(`${monday.getFullYear()}年${monday.getMonth() + 1}月${monday.getDate()}日-${friday.getMonth() + 1}月${friday.getDate()}日`);
+
+                // 週が選択された場合にボタンを有効にする
+                $("#submitWeekButton").prop("disabled", false);
+            }
+        });
+
+        $("#submitWeekButton").click(function(event) {
+            event.preventDefault();
+            redirectToShiftDetail(year, week);
+        });
+
+        document.querySelectorAll(".delete-form").forEach(function(form) {
+            form.addEventListener("submit", function(event) {
+                if (!confirm("削除してもよろしいですか？")) {
+                    event.preventDefault(); // フォーム送信をキャンセル
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

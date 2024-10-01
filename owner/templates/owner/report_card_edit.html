@@ -1,0 +1,158 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}通知簿編集{% endblock %}
+{% block headline %}<a href="{% url 'owner:student_list' %}">生徒情報</a>><a href="{% url 'owner:document_select' pk %}">{{ student }}の資料</a>>通知簿編集{% endblock %}
+
+{% block style %}
+<style>
+    /* Bootstrapのテーブルスタイルを適用 */
+    table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+    th, td {
+        border: 1px solid #343a40;
+        padding: 8px;
+        text-align: center;
+    }
+    th {
+        background-color: #343a40;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <table id="reportTable" class="table table-striped">
+        <thead>
+            <!-- ヘッダー行はJavaScriptで動的に追加 -->
+        </thead>
+        <tbody>
+            <!-- データ行もJavaScriptで動的に追加 -->
+        </tbody>
+    </table>
+    <button id="saveButton" class="btn btn-primary">保存</button> <!-- Bootstrapのボタンスタイルを適用 -->
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    const SEMESTER_CHOICES = {{ semester_choices|safe }};
+    const SUBJECT_CHOICES = {{ subject_choices|safe }};
+    const jsonData = {{ json_str|safe }};
+    // テーブルの行を動的に作成する関数
+    function createTableRows() {
+        const table = document.querySelector('#reportTable');
+        const tableHead = table.querySelector('thead');
+        const tableBody = document.querySelector('#reportTable tbody');
+
+        // 科目を含むテーブルヘッダーを作成
+        const headRow = document.createElement('tr');
+        // ヘッダーの最初のセル（空白）
+        const headEmptyCell = document.createElement('th');
+        headRow.appendChild(headEmptyCell); // ヘッダーの左端の位置を合わせるための空セル
+        SUBJECT_CHOICES.forEach(subject => {
+            const headCell = document.createElement('th');
+            headCell.textContent = subject[1]; // 番号ではなく科目名を表示
+            headRow.appendChild(headCell);
+        });
+        tableHead.appendChild(headRow);
+
+        // セメスターと入力フィールドを含むテーブルボディを作成
+        SEMESTER_CHOICES.forEach((semester, semesterIndex) => {
+            const row = document.createElement('tr');
+            // 各行の最初のセル（セメスター名）
+            const semesterCell = document.createElement('td');
+            semesterCell.textContent = semester[1]; // 番号ではなくセメスター名を表示
+            semesterCell.setAttribute('data-semester-id', semester[0]);
+            row.appendChild(semesterCell);
+
+            SUBJECT_CHOICES.forEach((subject, subjectIndex) => {
+                const cell = document.createElement('td');
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.min = '1'; // 最小値を設定
+                input.max = '5'; // 最大値を設定
+                input.value = ''; // 最初は空
+                input.setAttribute('data-semester', semesterIndex + 1);
+                input.setAttribute('data-subject', subjectIndex + 1);
+                input.addEventListener('change', updateCellValue);
+                cell.appendChild(input);
+                row.appendChild(cell);
+            });
+            tableBody.appendChild(row);
+        });
+    }
+
+    // 入力が変更されたときにセルの値を更新する関数
+    function updateCellValue(event) {
+        const newValue = event.target.value;
+        const semesterIndex = parseInt(event.target.getAttribute('data-semester')) - 1;
+        const subjectIndex = parseInt(event.target.getAttribute('data-subject')) - 1;
+    }
+
+    // JSONデータを取得する関数
+    function getJsonData() {
+        const jsonData = {};
+        const tableBody = document.querySelector('#reportTable tbody');
+        const rows = tableBody.querySelectorAll('tr');
+        rows.forEach(row => {
+            const semester = row.querySelector('td:first-child').getAttribute('data-semester-id');
+            const inputs = row.querySelectorAll('input');
+            jsonData[semester] = {};
+            inputs.forEach(input => {
+                const subject = input.getAttribute('data-subject');
+                const value = input.value;
+                jsonData[semester][subject] = value;
+            });
+        });
+        return JSON.stringify(jsonData);
+    }
+
+    // バックエンドにJSONデータを送信する関数
+    function sendDataToBackend(jsonData) {
+        $.ajax({
+            type: "POST",
+            url: "{% url 'owner:report_card_edit' pk %}",
+            data: {
+                'csrfmiddlewaretoken': '{{ csrf_token }}',
+                'json_data': jsonData,
+            },
+            success: function(response) {
+                window.location.href = response.redirect_url;
+            },
+            error: function(xhr, textStatus, errorThrown) {
+            },
+            complete: function () {
+                spinnerOverlay.classList.add('d-none')
+            }
+        });
+    }
+
+    // 保存ボタンがクリックされたときの処理
+    saveButton.addEventListener('click', function() {
+        const json_data = getJsonData();
+        spinnerOverlay.classList.remove('d-none')
+        sendDataToBackend(json_data);
+        
+    });
+
+    // JSONデータからフォームにデータを設定
+    function setFormDataFromJson() {
+        for (const semester in jsonData) {
+            for (const subject in jsonData[semester]) {
+                const value = jsonData[semester][subject].value;
+                const input = document.querySelector(`input[data-semester="${semester}"][data-subject="${subject}"]`);
+                if (input) {
+                    input.value = value;
+                }
+            }
+        }
+    }
+    // テーブルの行を作成し、サンプルデータでテーブルを埋めます
+    createTableRows();
+
+    // JSONデータからフォームにデータを設定
+    setFormDataFromJson();
+</script>
+{% endblock %}

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        h1 {
+            font-size: 19px;
+        }
+        p {
+            font-size: 12px;
+        }
+        .container {
+            font-family: 'HeiseiMin-W3';
+            margin: 20px;
+        }
+        .date {
+            text-align: right;
+        }
+        .name {
+            margin-left: 20px;
+        }
+        .company {
+            text-align: right;
+        }
+        .header {
+            text-align: center;
+        }
+        .introduce {
+            margin-left: 40px;
+        }
+        .introduce-finish {
+            text-align: center;
+            margin-left: 40px;
+        }
+        .message {
+            text-align: center;
+        }
+        .information {
+            font-size: 13px;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px; /* テーブルの上部に余白を追加 */
+        }
+        th, td {
+            border: 1px solid #dddddd;
+            padding: 6px 40px; /* セルの余白 */
+            text-align: center;
+            line-height: 1; /* テキストの行の高さを調整 */
+        }
+
+        th {
+            background-color: #f2f2f2;
+            font-size: 14px;
+            padding-top: 15px;
+        }
+        td {
+            padding-top: 15px;
+        }
+        .name-cell {
+            font-weight: bold;
+        }
+        .cost-name {
+            font-size: 15px;
+        }
+        .cost {
+            font-size: 15px;
+        }
+        .total, .total-money {
+            font-size: 15px;
+            padding-top: 7px;
+            font-weight: bold;
+        }
+        .cost-name, .cost {
+            padding: 4px; /* 上下の余白を削除 */
+        }
+        .bank-color {
+            background-color: yellow;
+        }
+        h2 {
+            padding: 0;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="date"><h2>発行日{{ billing_date }}</h2></div>
+        <div class="name"><h1>{{ student.last_name }}{{ student.first_name }}&nbsp様</h1></div>
+        <div class="company">
+            <p>NEEDMOREグループ</p>
+            <p>ニードモアアカデミー</p>
+            <p>代表&nbsp;三浦&nbsp;侑真</p>
+        </div>
+        <div class="header">
+            <h1>{{ year }}年{{ month }}月振替明細</h1>
+        </div>
+        <div class="introduce">
+            <p>拝啓&nbsp;毎々格別のお引き立てにあずかり厚くお礼申し上げます。</p>
+            <p style="color: red;">３月の学費の内訳は下記の通りです。</p>
+            <p>{{ year }}年{{ month }}月1日にお引き落としさせていただく予定です。</p>
+        </div>    
+        <div class="introduce-finish">
+            <p>敬具</p>
+        </div>
+        <div class="message">
+            <p>記</p>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>項目</th>
+                    <th>金額</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in invoices %}
+                <tr>
+                    <td class="cost-name">{{ invoice.cost_name }}</td>
+                    <td class="cost">￥{{ invoice.price }}</td>
+                </tr>
+                {% endfor %}
+                <tr>
+                    <td class="total">合計金額</td>
+                    <td class="total-money">￥{{ total_price }}</td>
+                </tr>
+            </tbody>
+        </table>
+        <div style="padding: 50px; border: 1px solid #000;">
+            <h2 style="top: 50%;">(備考欄){{ remarks }}</h2>
+        </div> 
+        <div class="bank-color">
+            {% if bank_info %}
+            <h2>振込先&nbsp;三井住友銀行</h2>
+            <h2>加古川支店(431)</h2>
+            <h2>普通 6050772</h2>
+            <h2>ニードモアグループ&nbsp;ミウラ&nbsp;ユウマ</h2>
+            {% endif %} 
+        </div>  
+    </div>
+  </div>
+</body>
+</html>
+

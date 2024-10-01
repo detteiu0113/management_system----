@@ -1,0 +1,176 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}個人情報{% endblock %}
+
+{% block headline %}<a href="{% url 'owner:student_list' %}">生徒情報</a>>個人情報{% endblock %}
+
+{% block style %}
+<style>
+    .container {
+        width: 100%;
+        margin: 0 auto;
+        background: #fff;
+        padding: 20px 17px;
+        box-shadow: 0px 0px 10px rgba(0,0,0,0.35); /* 全体に影を付ける */
+    }
+
+    .heading {
+        font-family: 'Amarante', Tahoma, sans-serif;
+        font-weight: bold;
+        font-size: 1.8em;
+        line-height: 1.7em;
+        margin-bottom: 10px;
+        text-align: center;
+        padding: 0;
+    }
+
+    .info-table {
+        margin-bottom: 30px;
+        box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3); /* 枠線全体に影を付ける */
+    }
+
+    .info-table table {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: #f9f9f9;
+        border-radius: 5px;
+        box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3); /* 枠線全体に影を付ける */
+        border: 1px solid #ddd; /* テーブル全体に枠線を付ける */
+    }
+    .info-table .table th,
+    .info-table .table td {
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
+        text-align: left;
+    }
+
+    .info-table .table th {
+        background-color: #343a40;
+        color: #fff;
+    }
+
+    .info-table .table tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }
+    .toggle-button {
+        background-color: #007bff; /* ボタンの背景色 */
+        color: #fff; /* ボタンのテキスト色 */
+        border: none; /* ボタンの枠線をなくす */
+        padding: 4px 10px; /* ボタンの余白 */
+        text-align: center; /* ボタン内のテキストを中央揃え */
+        text-decoration: none; /* ボタン内のテキストに下線をつけない */
+        display: inline-block; /* ボタンをブロック要素として表示 */
+        font-size: 16px; /* ボタンのテキストサイズ */
+        cursor: pointer; /* ボタンにポインターを表示 */
+        border-radius: 5px; /* ボタンの角を丸くする */
+        transition: background-color 0.3s ease; /* 背景色の変化を滑らかにする */
+    }
+
+        /* ボタンのホバーエフェクト */
+    .toggle-button:hover {
+        background-color: #0056b3; /* ホバー時の背景色 */
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="info-table" id="parents-table">
+        <table id="parents" class="table">
+            <thead>
+                <tr>
+                    <th><span>保護者名</span></th>
+                    <th><span>メールアドレス</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{ student.parent.all.0.user }}</td>
+                    <td>{% if student.parent.all.0.user.email %}{{ student.parent.all.0.user.email }}{% else %}未登録{% endif %}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="info-table" id="students-table">
+        <table id="students" class="table">
+            <thead>
+                <tr>
+                    <th><span>生徒名</span></th>
+                    <th><span>学年</span></th>
+                    <th><span>小学校</span></th>
+                    <th><span>中学校</span></th>
+                    <th><span>高校</span></th>
+                    <th><span>誕生日</span></th>
+                    <th><span>入塾日</span></th>
+                    <th><span>ステータス</span></th>
+                    <th><span>情報の編集</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="editable">{{ student }}</td>
+                    <td class="editable">{{ student.get_grade_display }}</td>
+                    <td class="editable">{% if student.elementary_school %}{{ student.elementary_school }}{% else %}未登録{% endif %}</td>
+                    <td class="editable">{% if student.get_school_display %}{{ student.get_school_display }}{% else %}未登録{% endif %}</td>
+                    <td class="editable">{% if student.high_school %}{{ student.high_school }}{% else %}未登録{% endif %}</td>
+                    <td class="editable">{{ student.birth_date }}</td>
+                    <td class="editable">{{ student.enrollment_date }}</td>
+                    <td>
+                        <a href="{% url 'owner:student_status_update' student.pk %}" class="text-decoration-none">
+                        {% if student.is_withdrawn %}
+                            退塾
+                        {% elif student.is_on_leave %}
+                            休塾
+                        {% elif student.is_planning_to_withdraw %}
+                            年度末で退塾
+                        {% else %}
+                            受講中
+                        {% endif %}
+                        </a>
+                    </td>
+                    <td><a href="{% url 'owner:student_detail_update' student.pk %}">編集</a></td>
+                </tr>
+            </tbody>            
+        </table>
+    </div>
+    <div class="row">
+        <div class="col">
+            <h4>特筆事項</h4>
+        </div>
+        <div class="col d-flex justify-content-end">
+            <a href="{% url 'owner:student_notable_create' student.pk %}" class="btn btn-primary">新規追加</a>
+        </div>
+    </div>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>内容</th>
+                <th>作成者</th>
+                <th>日付</th>
+                <th>編集</th>
+                <th>削除</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for notable in notables %}
+            <tr>
+                <td>{{ notable.notable }}</td>
+                <td>{{ notable.writer }}</td>
+                <td>{{ notable.date }}</td>
+                <td><a class="btn btn-sm btn-primary" href="{% url 'owner:student_notable_update' notable.pk %}">編集</a></td>
+                <td> 
+                    <form action="{% url 'owner:student_notable_delete' notable.pk %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-danger">削除</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5">データはありません。</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

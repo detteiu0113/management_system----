@@ -1,0 +1,14 @@
+{% extends 'teacher/base.html' %}
+
+{% block title %}英単語テスト送信フォーム{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h4>英単語テスト送信フォーム</h4>
+    <form action="" method="post">
+        {% csrf_token %}
+        {{ form }}
+        <button type="submit" class="btn btn-primary mt-3 w-100">送信</button>
+    </form>
+</div>
+{% endblock %}

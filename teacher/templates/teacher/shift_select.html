@@ -1,0 +1,76 @@
+{% extends 'teacher/base.html' %}
+
+{% block title %}シフト管理{% endblock %}
+{% block headline %}シフト管理{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="//code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+{% endblock %}
+
+{% block style %}
+<style>
+    .custom-card {
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      margin-top: 20px;
+    }
+
+    .custom-card .card-body {
+      padding: 20px;
+    }
+
+    .custom-card .card-title {
+      color: #333;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 0;
+    }
+
+    .custom-card .list-group-item {
+      background-color: #f8f9fa;
+      border: none;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .custom-card .list-group-item:last-child {
+      border-bottom: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card custom-card">
+        <div class="card-body">
+        <h5>シフト一覧</h5>
+        <ul class="list-group list-group-flush">
+            {% for year_week in week_list %}
+            <a class="week-link-display text-decoration-none list-group-item" href="#" data-year="{{ year_week.year }}" data-week-number="{{ year_week.week }}" style="font-size: 12px;">
+                <li class="text-primary" style="list-style: none;">
+                  {{ year_week.year }}年第{{ year_week.week }}週 ({{ year_week.monday }}-{{ year_week.friday }})
+                </li>
+            </a>
+            {% endfor %}
+        </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
+<script>
+    function redirectToShiftDisplay(year, week) {
+        var url = `${year}/${week}/1/`
+        window.location.href = url;
+    }
+
+    $( function() {
+        $(".week-link-display").click(function(event) {
+            event.preventDefault();
+            redirectToShiftDisplay($(this).data('year'), $(this).data('week-number'));
+        });
+    });
+</script>
+{% endblock %}

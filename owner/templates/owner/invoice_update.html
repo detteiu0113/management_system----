@@ -1,0 +1,27 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}編集{% endblock %}
+{% block headline %}会計><a href="{% url 'owner:invoice_list' %}">請求書</a>
+>編集{% endblock %}
+
+{% block content %}
+<h4>{{ student }}の明細を編集</h4>
+<form id="invoice-form" method="POST">
+    {% csrf_token %}
+    {{ form }}
+    <button type="submit" class="btn btn-primary mt-3">送信</button>
+</form>
+{% endblock %}
+
+{% block script %}
+<script>
+    document.getElementById("invoice-form").addEventListener("submit", function(event) {
+        const form = event.target;
+        const isValid = form.checkValidity();
+        if (!isValid) {
+            spinnerOverlay.classList.add('d-none');
+            event.preventDefault();
+        }
+    });
+</script>
+{% endblock %}

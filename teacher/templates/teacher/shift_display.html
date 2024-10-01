@@ -1,0 +1,124 @@
+{% extends 'teacher/base.html' %}
+{% load custom_tags %}
+
+{% block title %}シフト{% endblock %}
+
+{% block head %}
+<style>
+    td {
+        padding: 0!important;
+    }
+
+    hr {
+        margin: 0!important;
+        color: white;
+    }
+
+    table {
+        width: {% if is_extend %}600{% else %}500{% endif %}px!important;
+        font-size: 10px!important;
+    }
+
+    .td-row-upper, .td-row-lower {
+        margin: 0!important;
+        width: 100%;
+    }
+
+    .td-row-lower {
+        border: 1px black solid;
+        height: 14px;
+    }
+
+    .td-col {
+        border: 1px black solid;
+        padding: 0!important;
+        height: 26px;
+    }
+
+    .page-link {
+        font-size: 12px!important;
+        padding: 3px;
+    }
+
+    td {
+        font-size: 7px!important;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<nav class="d-flex justify-content-center">
+    <ul class="pagination">
+        {% for date in dates %}
+            <li class="page-item"><a class="page-link {% if forloop.counter == day %}active{% endif %}" href="{% url 'teacher:shift_display' year week forloop.counter %}">{{ date }}</a></li>
+        {% endfor %}
+    </ul>
+</nav>
+{% if shifts %}
+<div class="table-responsive">
+    <table class="table">
+        <thead>
+            <tr>
+                <th></th>
+                {% for time in time_choices %}
+                <th class="text-center">
+                    {{ time }}
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+        {% regroup shifts by room as room_list %}
+        {% for room in room_list %}
+                <tr>
+                    <th class="text-center">{{ room.grouper }}</th>
+                    {% for shift in room.list %}
+                    <td>
+                        <div class="row td-row-upper">
+                            {% for i in '1234' %}
+                            {% get_lesson shift i as lesson_obj %}
+                            <div class="col-6 td-col text-center">
+                                <div class="w-100 h-100 d-flex align-items-center flex-column justify-content-center
+                                {% if not lesson_obj %}
+                                    bg-white
+                                {% elif lesson_obj.is_rescheduled %}
+                                    bg-warning
+                                {% elif lesson_obj.is_temporaly %}
+                                    bg-light
+                                {% elif lesson_obj.is_regular %}
+                                    bg-white
+                                {% else %}
+                                    bg-info
+                                {% endif %}
+                                    ">
+                                    <span>
+                                        {{ lesson_obj.student }}
+                                    </span>
+                                    <span>
+                                        {{ lesson_obj.get_grade_display }}
+                                        {{ lesson_obj.get_subject_display }}
+                                        
+                                    </span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>                                                           
+                        <div class="row td-row-lower justify-content-center">
+                            <div class="d-flex justify-content-center {% if not shift.teacher_shift %}{% if shift.lessons.lesson1 or shift.lessons.lesson2 or shift.lessons.lesson3 or shift.lessons.lesson4 %}bg-danger{% endif %}{% endif %}">
+                                {% if shift.teacher_shift.is_fixed %}
+                                <span>{{ shift.teacher_shift.fixed_shift.teacher }}</span>
+                                {% else %}
+                                <span>{{ shift.teacher_shift.temporaly_shift.teacher }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    {% endfor %}
+                </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+    <h1 class="text-center" style="color: red; font-size: 30px; margin-top: 250px;">休校日</h1>
+{% endif %}
+{% endblock %}

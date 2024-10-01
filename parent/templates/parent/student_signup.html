@@ -1,0 +1,173 @@
+{% extends 'parent/base.html' %}
+
+{% block title %}生徒の追加{% endblock %}
+
+{% block content %}
+<div class="container">
+    <form action="" method="post" id="brothersForm">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>
+            {{ form.last_name }}
+        </div>
+        <div class="form-group">
+            <label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}</label>
+            {{ form.first_name }}
+        </div>
+        <div class="form-group">
+            <label for="{{ form.birth_date.id_for_label }}">{{ form.birth_date.label }}</label>
+            {{ form.birth_date }}
+        </div>
+        <div id="gradeContainer">
+        </div>
+        <div id="gradeErrorContainer" class="d-none">
+            誕生日が無効です。
+        </div>
+        <div class="form-group d-none" id="elementarySchoolForm">
+            <label for="{{ form.elementary_school.id_for_label }}">{{ form.elementary_school.label }}</label>
+            {{ form.elementary_school }}
+        </div>
+        <div class="form-group d-none" id="middleSchoolForm">
+            <label for="{{ form.school.id_for_label }}">{{ form.school.label }}</label>
+            <select id="{{ form.school.id_for_label }}" name="{{ form.school.html_name }}" class="{{ form.school.field.widget.attrs.class }}">
+                {% for value, text in form.school.field.choices %}
+                    <option value="{{ value }}"{% if form.student_school.value == value %} selected{% endif %}>{{ text }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group d-none" id="highSchoolForm">
+            <label for="{{ form.high_school.id_for_label }}">{{ form.high_school.label }}</label>
+            {{ form.high_school }}
+        </div>
+        <button type="submit" class="mt-3 btn btn-primary" id="submitButton">送信</button>
+    </form>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    // フォームの誕生日フィールドの要素を取得
+    var birthDateInput = document.getElementById('id_birth_date');
+
+    const elementarySchoolForm = document.getElementById('elementarySchoolForm');
+    const middleSchoolForm = document.getElementById('middleSchoolForm');
+    const highSchoolForm = document.getElementById('highSchoolForm');
+
+    const elementarySchoolInput = document.getElementById('id_elementary_school');
+    const middleSchoolSelect = document.getElementById('id_school');
+    const highSchoolInput = document.getElementById('id_high_school');
+    
+    const gradeContainer = document.getElementById('gradeContainer');
+    const gradeErrorContainer = document.getElementById('gradeErrorContainer');
+    
+    var submitBtn = document.getElementById("submitButton");
+    var form = document.getElementById("brothersForm");
+
+    var requiredFields = [document.getElementById('id_last_name'), document.getElementById('id_first_name'), birthDateInput, elementarySchoolInput, middleSchoolSelect, highSchoolInput];
+
+    // フォームの誕生日フィールドが変更されたときのイベントリスナーを追加
+    birthDateInput.addEventListener('change', function() {
+        // 入力された誕生日を取得
+        var birthDate = new Date(this.value);
+
+        // 今日の日付を取得
+        var today = new Date();
+        
+        // 現在の学年を計算
+        var currentYear = today.getFullYear();
+        if (today.getMonth() >= 3) { // 3月以降なら今年の年度
+            currentYear = today.getFullYear();
+        } else { // それ以外の場合は前の年の年度
+            currentYear = today.getFullYear() - 1;
+        }
+
+        // 誕生日から学年を計算
+        var birthYear = birthDate.getFullYear();
+        if (birthDate.getMonth() >= 4) { // 4月以降の誕生日の場合はその年の学年
+            birthYear = birthDate.getFullYear();
+        } else { // それ以外の場合は前の年の学年
+            birthYear = birthDate.getFullYear() - 1;
+        }
+        var ageInGrade = currentYear - birthYear - 6;
+        
+        // 過年度生は13で統一
+        if (ageInGrade >= 14) {
+            ageInGrade = 13;
+        }
+
+        gradeMapping = {
+            1: '小学1年生',
+            2: '小学2年生',
+            3: '小学3年生',
+            4: '小学4年生',
+            5: '小学5年生',
+            6: '小学6年生',
+            7: '中学1年生',
+            8: '中学2年生',
+            9: '中学3年生',
+            10: '高校1年生',
+            11: '高校2年生',
+            12: '高校3年生',
+            13: '高3以降',
+        }
+
+        elementarySchoolForm.classList.add('d-none');
+        middleSchoolForm.classList.add('d-none');
+        highSchoolForm.classList.add('d-none');
+
+        elementarySchoolInput.required = true;
+        middleSchoolSelect.required = true;
+        highSchoolInput.required = true;
+
+        gradeErrorContainer.classList.add('d-none')
+        
+        if (1 <= ageInGrade && ageInGrade <= 6) {
+            elementarySchoolForm.classList.remove('d-none');
+            middleSchoolSelect.required = false;
+            highSchoolInput.required = false;
+        } else if (7 <= ageInGrade && ageInGrade <= 9) {
+            elementarySchoolForm.classList.remove('d-none');
+            middleSchoolForm.classList.remove('d-none');
+            highSchoolInput.required = false;
+        } else if (10 <= ageInGrade) {
+            elementarySchoolForm.classList.remove('d-none');
+            middleSchoolForm.classList.remove('d-none');
+            highSchoolForm.classList.remove('d-none');
+        } else {
+            gradeErrorContainer.classList.remove('d-none')
+            submitBtn.disabled = true;
+        }
+
+        if (today.getMonth() === 2) { // 3月の場合新をつける
+            gradeContainer.textContent = '新' + gradeMapping[ageInGrade];
+        } else {
+            gradeContainer.textContent = gradeMapping[ageInGrade];          
+        }
+
+        checkFormValidity();
+    });
+
+    function checkFormValidity() {
+        var isValid = true;
+        requiredFields.forEach(function(field) {
+            if (field && field.required && !field.value.trim()) {
+                isValid = false;
+            }
+        });
+        submitBtn.disabled = !isValid;
+    }
+    
+    document.addEventListener('DOMContentLoaded', function () {
+        requiredFields.forEach(function(field) {
+            field.addEventListener('input', checkFormValidity);
+        });
+        
+        submitBtn.addEventListener("click", function(event) {
+            event.preventDefault();
+            submitBtn.disabled = true;
+            form.submit();
+        });
+        checkFormValidity();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            font-family: 'HeiseiMin-W3';
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 5px;
+            padding-top: 9px!important;
+            text-align: center;
+            font-size: 14px;
+        }
+        th {
+            background-color: green;
+            color: white;
+        }
+        .header {
+            text-align: center;
+            font-size: 16px;
+        }
+        .company {
+            text-align: right;
+        }
+        .cost-name {
+            font-size: 15px;
+        }
+        .cost {
+            font-size: 15px;
+        }
+        .cost-name, .cost {
+            padding: 4px; /* 上下の余白を削除 */
+        }
+        .total-saraly {
+            width: 100%;
+            margin-top: 40px;
+        }
+        .total-saraly th,
+        .total-saraly td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
+        }
+        .total-saraly th {
+            background-color: green;
+            font-weight: bold;
+        }
+        /* 合計行のスタイル */
+        .total {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>令和　{{ year }}年{{ month }}月分　給与明細書</h1>
+        </div>
+        <div class="company">
+            <h2>発行日: {{ billing_date }}</h2>
+            <h2>株式会社　岡崎塾</h2>
+        </div>
+        <table>
+            <tbody>
+                <th>社員No.</th>
+                <td>{{ teacher.id }}</td>
+                <th>氏名</th>
+                <td>{{ teacher }}</td>
+            </tbody>
+        </table>
+            <table class="total-saraly">
+                <thead>
+                    <tr>
+                        <th colspan="2">支給</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for salary in salaries %}
+                    <tr>
+                        <td class="cost-name">{{ salary.get_cost_name_display }}</td>
+                        <td class="cost">￥{{ salary.price }}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr>
+                        <td class="total">支給額合計</td>
+                        <td class="total-money">￥{{ total_salary }}</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="salary-remarks" style="padding: 10px; border: 1px solid black;">
+                <p>（備考欄）{{ remarks }}</p>
+            </div>
+    </div>
+</body>
+</html>

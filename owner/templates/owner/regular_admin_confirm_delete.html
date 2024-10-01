@@ -1,0 +1,48 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}通常授業{% endblock %}
+{% block headline %}<a href="{% url 'owner:regular_list' %}">通常授業</a>>削除{% endblock %}
+
+{% block style %}
+<style>
+    .card {
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        margin: 20px auto;
+        padding: 30px;
+        max-width: 500px;
+    }
+
+    /* Button Style */
+    .btn-danger {
+        background-color: #dc3545;
+        border-color: #dc3545;
+        color: #fff;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    .btn-danger:hover {
+        background-color: #c82333;
+        border-color: #bd2130;
+    }
+    p {
+        font-size: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card">
+        <p>{{ object }}を削除してもよろしいですか？(過去のデータも含めて削除されます)</p>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger" id="submit">削除</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

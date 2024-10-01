@@ -1,0 +1,141 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}明細管理{% endblock %}
+{% block headline %}会計>請求書{% endblock %}
+
+{% block style %}
+<style>
+    /* カスタムのCSSスタイルを追加 */
+    .container {
+        margin-top: 50px;
+    }
+
+    /* テーブルヘッダーのスタイル */
+    table thead {
+        background-color: #343a40; /* ダークグレー */
+        color: #fff; /* 白 */
+    }
+
+    /* テーブル行のホバースタイル */
+    table tbody tr:hover {
+        background-color: #f8f9fa; /* ホバー時の背景色を灰色に */
+    }
+
+    /* Total Priceセルのスタイル */
+    .total-price {
+        font-weight: bold;
+    }
+    
+    .total-box {
+      background-color: #f4f4f4;
+      padding: 10px;
+      border-radius: 5px;
+    }
+
+    .total-label {
+      font-weight: bold;
+      margin-right: 10px;
+    }
+
+    .total-amount {
+      font-size: 25px;
+      font-weight: bold;
+      text-decoration: double;
+      text-decoration-color: red;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <form method="GET" class="mb-3 row">
+        <div class="col">
+            <select name="year" id="year_select" class="form-control">
+                {% for year in years %}
+                <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}年</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col">
+            <select name="month" id="month_select" class="form-control">
+                {% for month in months %}
+                <option value="{{ month }}" {% if month == selected_month %}selected{% endif %}>{{ month }}月</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col">
+            <select name="student_id" id="student_select" class="form-control">
+                <option value="">すべての生徒</option>
+                {% for student in students %}
+                <option value="{{ student.pk }}">{{ student }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col">
+            <button type="submit" class="btn btn-secondary">検索</button>
+        </div>
+        <div class="col d-flex">
+            <a href="{% url 'owner:invoice_create' %}" class="btn btn-primary">新規作成</a>
+            <a href="{% url 'owner:invoice_pdf' %}" class="btn btn-danger ms-2">PDF発行</a>
+        </div>
+    </form>
+    <table class="table table-striped mt-3">
+        <thead>
+            <tr>
+                <th>生徒</th>
+                <th>明細</th>
+                <th>価格</th>
+                <th>日付</th>
+                <th>編集</th>
+                <th>削除</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for invoice in object_list %}
+            <tr>
+                <td>{{ invoice.student }}</td>
+                <td>{{ invoice.cost_name }}</td>
+                <td id="price-{{ invoice.id }}">{{ invoice.price }}</td>
+                <td>{{ invoice.date }}</td>
+                <td>                
+                    <a href="{% url 'owner:invoice_update' invoice.pk %}" class="btn btn-danger {% if invoice.cost_name == '授業料' %}d-none{% endif %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
+                            <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+                            <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+                        </svg>
+                    </a>
+                </td>
+                <td>
+                    <form action="{% url 'owner:invoice_delete' invoice.pk %}" method="post">
+                        {% csrf_token %}
+                        <button class="btn btn-secondary delete-button" type="submit">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-trash3" viewBox="0 0 16 16">
+                                <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5M11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47M8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5"/>
+                            </svg>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6">データがありません。</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="container">
+        {% if teacher_salaries %}
+        <div class="row justify-content-end">
+          <div class="col-md-6">
+            <div class="total-box">
+              <span class="total-label">合計給与:</span>
+              {% for teacher_salary in teacher_salaries %}
+              <span class="total-amount">{{ teacher_salary.total_price }}</span>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

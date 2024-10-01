@@ -1,0 +1,400 @@
+{% extends 'owner/base.html' %}
+{% block title %}面談作成{% endblock %}
+
+{% block style %}
+<style>
+  table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th, td {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<form id="interviewForm" class="container mt-5">
+    {% csrf_token %}
+    <div class="form-group">
+        <label for="name">面談名:</label>
+        <input type="text" class="form-control" id="name" name="name" required>
+    </div>
+    <div class="form-group">
+        <label for="start_date">開始日:</label>
+        <input type="date" class="form-control" id="start_date" name="start_date" required>
+    </div>
+    <div class="form-group">
+        <label for="end_date">終了日:</label>
+        <input type="date" class="form-control" id="end_date" name="end_date" required>
+    </div>
+    <div class="alert alert-danger" id="dateError" style="display: none;">終了日は開始日より後の日付にしてください。</div>
+
+    <div class="time-choices-container mb-3">
+        <div class="form-row align-items-center">
+            <p class="error" style="color: red; display: none;">終了時間は開始時間より後の時刻にしてください。</p>
+            <div class="col-6">
+                <label for="start_time">開始時間:</label>
+                <input type="time" class="form-control" name="start_time" required>
+            </div>
+            <div class="col-6">
+                <label for="end_time">終了時間:</label>
+                <input type="time" class="form-control" name="end_time" required>
+            </div>
+            <div class="col-auto d-none">
+                <button type="button" class="btn btn-danger deleteTimeChoice">削除</button>
+            </div>
+        </div>
+    </div>
+
+    <button type="button" class="btn btn-primary" id="addTimeChoice">時間選択追加</button>
+
+    <input type="submit" class="btn btn-success" id="submitBtn" value="追加" disabled>
+
+    <ul id="dateList" class="list-group"></ul>
+
+    <div id="tableContainer"></div>
+
+    <button type="button" id="saved" style="display:none;">送信</button>
+</form>
+{% endblock %}
+
+{% block script %}
+<script>
+    var jsonData = {
+        "timetables": [],
+        "selected_dates": []
+    };
+
+    function formatDate(date) {
+        // 年、月、日を取得する
+        let year = date.getFullYear();
+        let month = ('0' + (date.getMonth() + 1)).slice(-2); // 月は0から始まるため、+1する。また、2桁のゼロパディングが必要なのでsliceを使用する。
+        let day = ('0' + date.getDate()).slice(-2); // 2桁のゼロパディングが必要なのでsliceを使用する。
+
+        // YYYY-MM-DD形式の文字列に変換して返す
+        return year + '-' + month + '-' + day;
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const dateListContainer = document.getElementById("dateList");
+        const submitButton = document.getElementById("submitBtn");
+        const startDateInput = document.getElementById("start_date");
+        const endDateInput = document.getElementById("end_date");
+        const addTimeChoiceButton = document.getElementById("addTimeChoice");
+        const deleteButton= document.getElementById("deleteBtn");
+        let timeChoiceCount = 1; // 初期の時間選択フォームの数   
+        
+        // フォームの入力が完了したら追加ボタンを有効にする
+        document.getElementById("interviewForm").addEventListener("input", function () {
+            const formInputs = document.querySelectorAll('input[type="text"], input[type="date"], input[type="time"]');
+            let isFormValid = true;
+            
+            formInputs.forEach(function (input) {
+                if (!input.checkValidity()) {
+                isFormValid = false;
+                }
+            });
+
+            if (isFormValid) {
+                submitButton.disabled = false;
+            } else {
+                submitButton.disabled = true;
+            }
+        });
+
+        // addTimeChoice ボタンが押されたときの処理
+        timeChoicesContainer = document.getElementsByClassName('time-choices-container')[0]
+        addTimeChoiceButton.addEventListener("click", function () {
+            const timeChoiceHTML = `
+                <div class="form-row align-items-center">
+                    <div class="col-6">
+                        <label for="start_time">開始時間:</label>
+                        <input type="time" class="form-control"  name="start_time" required>
+                    </div>
+                    <div class="col-6">
+                        <label for="end_time">終了時間:</label>
+                        <input type="time" class="form-control" name="end_time" required>
+                    </div>
+                    <div class="col-auto">
+                        <button type="button" class="btn btn-danger deleteTimeChoice">削除</button>
+                    </div>
+                </div>
+            `;
+        
+            // 新しい時間選択フォームを追加
+            timeChoicesContainer.insertAdjacentHTML("beforeend", timeChoiceHTML);
+            checkFormValidity();// 追加後、すべてのフォームが正しく入力されているかどうかをチェックし、submitButtonの活性/非活性の状態を制御する
+        });
+            
+        // 追加された時間選択の削除ボタンの処理
+        document.addEventListener("click", function (event) {
+            if (event.target.classList.contains("deleteTimeChoice")) {
+                const timeChoice = event.target.parentNode.parentNode;
+                timeChoice.remove();
+                checkFormValidity();// フォームが削除された場合、再度すべてのフォームが正しく入力されているかどうかをチェックし、submitButtonの活性/非活性の状態を制御する
+            }
+        });
+
+        // フォームの入力が完了したらsubmitButtonを有効にする
+        function checkFormValidity() {
+            const formInputs = document.querySelectorAll('input[type="text"], input[type="date"], input[type="time"]');
+            let isFormValid = true;
+            formInputs.forEach(function (input) {
+                if (!input.checkValidity()) {
+                isFormValid = false;
+                }
+            });
+
+            // フォームが正しく入力されているかどうかと追加されたフォームの有無に応じてsubmitButtonの活性/非活性を切り替える
+            if (isFormValid && timeChoiceCount > 0) {
+                submitButton.disabled = false;
+            } else {
+                submitButton.disabled = true;
+            }
+        }
+
+        submitButton.addEventListener("click", function () {
+
+            event.preventDefault(); // ページ遷移を防ぐ
+
+            const startDate = new Date(document.getElementById("start_date").value);
+            const endDate = new Date(document.getElementById("end_date").value);
+
+            if (endDate <= startDate) {
+                document.getElementById("dateError").style.display = "block"; // 開始日が終了日よりも遅い場合のエラーメッセージ
+                event.preventDefault();
+                return;
+            } else {
+                document.getElementById("dateError").style.display = "none"; // エラーメッセージを非表示にする
+            }
+
+            jsonData.start_date = formatDate(startDate)
+            jsonData.end_date = formatDate(endDate)
+
+            const formControls = document.querySelectorAll('.time-choices-container input[type="time"]');
+            let previousTime = null;
+            let isValidTime = false;
+            const errorParagraph = document.querySelector('p[class=error]');
+            for (let i = 0; i < formControls.length; i++) {
+                const input = formControls[i];
+                const currentTime = input.value;
+                if (previousTime !== null && currentTime <= previousTime) {
+                    isValidTime = false;
+                    break; // ループから抜ける
+                } else {
+                    isValidTime = true;
+                }
+                previousTime = currentTime;
+            }
+
+            if (isValidTime) {
+                // ボタンやフォームを非活性にする処理を追加
+                submitButton.disabled = true;
+                addTimeChoiceButton.disabled = true;
+                document.getElementById("name").disabled = true;
+                document.getElementById("start_date").disabled = true;
+                document.getElementById("end_date").disabled = true;
+                const timeInputs = document.querySelectorAll('input[type="time"]');
+                timeInputs.forEach(function(input) {
+                    input.disabled = true;
+                });
+                const deleteButtons = document.querySelectorAll('.deleteTimeChoice');
+                deleteButtons.forEach(function(button) {
+                    button.disabled = true;
+                });
+                errorParagraph.style.display = "none"; // エラーメッセージを表示
+            } else {
+                errorParagraph.style.display = "block"; // エラーメッセージを表示
+                return;
+            }
+
+            // 日付を表示する処理を追加
+            const dateListContainer = document.getElementById("dateList");
+            dateListContainer.innerHTML = ""; // すでに表示されている日付をクリア
+
+            const currentDate = new Date(startDate);
+            const endDateObj = new Date(endDate);
+
+            while (currentDate <= endDateObj) {
+                const checkboxLabel = document.createElement("label");
+                const checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.name = "selected_dates";
+                checkbox.value = currentDate.toISOString().split('T')[0]; // 日付をISO形式で取得
+
+                checkboxLabel.appendChild(checkbox);
+                checkboxLabel.appendChild(document.createTextNode(currentDate.toLocaleDateString()));
+
+                dateListContainer.appendChild(checkboxLabel);
+                dateListContainer.appendChild(document.createElement("br"));
+
+                currentDate.setDate(currentDate.getDate() + 1); // 次の日付に進む
+            }
+
+            // すべてのチェックボックスを選択するボタンを追加
+            const selectAllButton = document.createElement("button");
+            selectAllButton.textContent = "すべて選択";
+            selectAllButton.addEventListener("click", function (event) {
+                event.preventDefault();
+                const checkboxes = document.querySelectorAll('input[name="selected_dates"]');
+                isChecked = this.textContent !== "すべて選択";
+
+                checkboxes.forEach(function (checkbox) {
+                    checkbox.checked = !isChecked; // チェック状態をトグル
+                });
+                // ボタンのテキストを切り替える
+                this.textContent = isChecked ? "すべて選択" : "チェックをすべて外す";
+                createTableButton.disabled = isChecked;
+            });
+            dateListContainer.appendChild(selectAllButton);
+            
+            // 「テーブルを作成」のボタンを追加
+            const createTableButton = document.createElement("button");
+            createTableButton.textContent = "テーブルを作成";
+            // ボタンを追加
+            dateListContainer.appendChild(createTableButton);
+            createTableButton.disabled=true
+            submitButton.disabled=true;
+            
+            // チェックボックスの状態を確認して、「テーブルを作成」ボタンの有効/無効を切り替える関数
+            const checkboxes = document.querySelectorAll('input[name="selected_dates"]');
+            let numberOfCheckedCheckboxes = 0;
+            for (let i = 0; i < checkboxes.length; i++) {
+                const checkbox = checkboxes[i];
+                checkbox.addEventListener("click", function() {
+                if (checkbox.checked) {
+                    createTableButton.disabled = false;
+                } else {
+                    for (let i = 0; i < checkboxes.length; i++) {
+                    const checkbox = checkboxes[i];
+                    if (checkbox.checked) {
+                        createTableButton.disabled = false;
+                        break;
+                    }
+                    createTableButton.disabled = true;
+                    selectAllButton.textContent = "すべて選択";
+                    }
+                }
+                });
+            }
+            
+            createTableButton.addEventListener("click", function (event) {
+                event.preventDefault();
+                submitButton.disabled = true;
+                selectAllButton.disabled = true;
+                const tableContainer = document.getElementById("tableContainer");
+                createTableButton.disabled=true;
+                const checkboxes = document.querySelectorAll('input[name="selected_dates"]');
+                let selectedDates = [];
+                let selectedData = []; // チェックされた日付と時間のデータを保持する配列
+                checkboxes.forEach(function (checkbox) {
+                    if (checkbox.checked) {
+                        selectedDates.push(new Date(checkbox.value));
+                    }
+                });
+                
+                // 日付の早い順にソート
+                selectedDates.sort((a, b) => a - b);
+
+                selectedDates.forEach(function(date) {
+                    jsonData.selected_dates.push(formatDate(date));
+                });
+                
+                // テーブルの子要素を削除
+                while (tableContainer.firstChild) {
+                    tableContainer.removeChild(tableContainer.firstChild);
+                }
+                
+                const table = document.createElement("table");
+                table.style.borderCollapse = "collapse";
+                table.style.width = "100%";
+                
+                    // ヘッダー行の作成
+                const headerRow = document.createElement("tr");
+                headerRow.innerHTML = "<th>日付</th>"; // 日付のヘッダーを追加
+
+                // 開始時間と終了時間のフォームをヘッダー行に追加
+                const timeInputs = document.querySelectorAll('input[type="time"]');
+                timeInputs.forEach(function (input, index) {
+                    if (index % 2 === 0) { // 偶数番目の場合は開始時間
+                        const startTime = input.value; // 開始時間
+                        let endTime = '';
+                        if (index < timeInputs.length - 1) { // 最後の要素以外の場合のみ次の要素の値を取得
+                            endTime = timeInputs[index + 1].value;
+                        }
+                        const cell = document.createElement("th");
+                        cell.textContent = `${startTime}-${endTime}`;
+                        headerRow.appendChild(cell);
+                        jsonData.timetables.push({
+                            "start_time": startTime,
+                            "end_time": endTime
+                        });
+                    }
+                });
+                table.appendChild(headerRow); // ヘッダー行を table に追加
+                
+                // 日付と時間を表示する行の作成
+                selectedDates.forEach(function (date) {
+                    const dateRow = document.createElement("tr");
+                    const dateCell = document.createElement("td");
+                    dateCell.textContent = date.toLocaleDateString();
+                    dateRow.appendChild(dateCell);
+
+                    // チェックボックスを作成してセルに追加
+                    for (let i = 0; i < timeInputs.length / 2; i++)  {
+                        const checkbox = document.createElement("input");
+                        checkbox.type = "checkbox";
+                        const cell = document.createElement("td");
+                        cell.appendChild(checkbox);
+                        dateRow.appendChild(cell);
+
+                        // チェックされた場合、日付と時間の情報を selectedData 配列に追加
+                        checkbox.addEventListener("change", function () {
+                            if (checkbox.checked) {
+                                const startTime = timeInputs[i * 2].value;
+                                const endTime = timeInputs[i * 2 + 1].value;
+                                selectedData.push({ date: formatDate(date), start_time: startTime, end_time: endTime });
+                            } else {
+                                // チェックが外された場合、対応するデータを selectedData 配列から削除
+                                const index = selectedData.findIndex(data => data.date === formatDate(date) && data.start_time === timeInputs[i * 2].value && data.end_time === timeInputs[i * 2 + 1].value);
+                                if (index !== -1) {
+                                    selectedData.splice(index, 1);
+                                }
+                            }
+                        });
+                    };
+                    table.appendChild(dateRow);
+                });
+                tableContainer.appendChild(table);
+
+                document.getElementById("saved").style.display = "block";
+                const submitBtn=document.getElementById("saved")
+                jsonData.name = document.getElementById('name').value
+                submitBtn.addEventListener("click", function () {
+                    jsonData.selected = selectedData;
+                    jsonData = JSON.stringify(jsonData)
+                    $.ajax({
+                        type: "POST",
+                        url: "{% url 'owner:interview_create' %}",
+                        data: {
+                            'csrfmiddlewaretoken': '{{ csrf_token }}',  // CSRFトークンを含める（Djangoテンプレートタグを使用）
+                            'json_data': jsonData,
+                        },
+                        success: function(response) {
+                            // 成功した場合の処理を記述
+                            window.location.href = response.redirect_url;  // リダイレクトする場合
+                        },
+                        error: function(xhr, textStatus, errorThrown) {
+                            // 処理を追加
+                        }
+                    })
+                });
+            });
+        });
+    });
+</script>
+{% endblock %}

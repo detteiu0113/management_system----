@@ -1,0 +1,185 @@
+{% extends 'owner/base.html' %}
+
+{% block title %}テンプレート{% endblock %}
+{% block headline %}<a href="{% url 'owner:shift_select' %}">シフト管理</a>>テンプレート{% endblock %}
+
+{% block head %}
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
+{% endblock %}
+
+{% block style %}
+<style>
+    td {
+        padding: 0!important;
+    }
+
+    hr {
+        margin: 0!important;
+        color: white;
+    }
+
+    .td-row-upper, .td-row-lower {
+        margin: 0!important;
+        width: 100%;
+    }
+
+    .td-row-lower {
+        border: 1px black solid;
+        height: 28px;
+    }
+
+    .td-col {
+        border: 1px black solid;
+        padding: 0!important;
+        height: 52px;
+    }
+    .custom-col {
+        width: 20%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<nav class="d-flex justify-content-center">
+    <ul class="pagination">
+        {% for num in page_obj.paginator.page_range %}
+            <li class="page-item{% if page_obj.number == num %} active {% endif %}">
+                <a class="page-link {% if page_obj.number == num %} link-white bg-secondary{% else %} link-primary{% endif %}" href="?page={{ num }}">{% cycle '月曜日' '火曜日' '水曜日' '木曜日' '金曜日' %}</a>
+            </li>
+        {% endfor %}
+    </ul>
+</nav>    
+<div class="container-fluid">
+    <button class="btn btn-secondary" id="editButton">編集</button>
+    <table class="table">
+        <thead>
+            <tr>
+                <th></th>
+                {% for time in time_choices %}
+                    <th class="text-center">{{ time }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+        {% regroup shifts by room as room_list %}
+        {% for room in room_list %}
+                <tr>
+                    <th class="text-center">{{ room.grouper }}</th>
+                    {% for shift in room.list %}
+                    <td class="custom-col">
+                        <div class="row td-row-upper">
+                            <div class="col-6 td-col text-center draggable droppable lesson lesson-{{ shift.time }}" id="{{ shift.lessons.id }}-1" data-lesson-id="{{ shift.lessons.template_lesson1.id }}">{{ shift.lessons.template_lesson1.student }}<hr>{{ shift.lessons.template_lesson1.get_grade_display }} {{ shift.lessons.template_lesson1.get_subject_display }}</div>
+                            <div class="col-6 td-col text-center draggable droppable lesson lesson-{{ shift.time }}" id="{{ shift.lessons.id }}-2" data-lesson-id="{{ shift.lessons.template_lesson2.id }}">{{ shift.lessons.template_lesson2.student }}<hr>{{ shift.lessons.template_lesson2.get_grade_display }} {{ shift.lessons.template_lesson2.get_subject_display }}</div>
+                            <div class="col-6 td-col text-center draggable droppable lesson lesson-{{ shift.time }}" id="{{ shift.lessons.id }}-3" data-lesson-id="{{ shift.lessons.template_lesson3.id }}">{{ shift.lessons.template_lesson3.student }}<hr>{{ shift.lessons.template_lesson3.get_grade_display }} {{ shift.lessons.template_lesson3.get_subject_display }}</div>
+                            <div class="col-6 td-col text-center draggable droppable lesson lesson-{{ shift.time }}" id="{{ shift.lessons.id }}-4" data-lesson-id="{{ shift.lessons.template_lesson4.id }}">{{ shift.lessons.template_lesson4.student }}<hr>{{ shift.lessons.template_lesson4.get_grade_display }} {{ shift.lessons.template_lesson4.get_subject_display }}</div>
+                        </div>                                           
+                        <div class="row td-row-lower justify-content-center draggable droppable teacher teacher-{{ shift.time }}" id="{{ shift.id }}" data-fixed_shift-id="{{ shift.fixed_shift.id }}">{% if shift.fixed_shift %}{{ shift.fixed_shift.teacher }}{% endif %}</div>
+                    </td>
+                    {% endfor %}
+                </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    function enableDragAndDrop() {
+    $(".draggable").draggable({
+        revert: "invalid",
+        containment: "document",
+        helper: function() {
+            return $(this).clone().css({
+                width: $(this).width(),
+                height: $(this).height()
+            });
+        },
+        cursor: "move",
+        create: function(event, ui) {
+            $(this).css('z-index', 1000);
+        }
+    });
+
+    $(".droppable").droppable({
+    accept: function(draggable) {
+        return $(this).hasClass(draggable.attr("class"));
+        },
+        drop: function(event, ui) {
+            var draggable = ui.draggable;
+            var droppable = $(this);
+            var draggableId = draggable.attr("id");
+            var droppableId = droppable.attr("id");
+            var draggableOffset = draggable.offset();
+            var droppableOffset = droppable.offset();
+            draggable.offset(droppableOffset);
+            droppable.offset(draggableOffset);
+            draggable.attr("id", droppableId);
+            droppable.attr("id", draggableId);
+        }
+    });
+
+    $(".draggable").draggable("enable");
+    $(".droppable").droppable("enable");
+    }
+
+    function handleEditButtonClick() {
+        enableDragAndDrop();
+        editButton.textContent = "保存";
+        editButton.removeEventListener('click', handleEditButtonClick);
+        editButton.addEventListener('click', handleSaveButtonClick);
+    }
+
+    function handleSaveButtonClick() {
+        spinnerOverlay.classList.remove('d-none');
+        editButton.disabled = true;
+        const data = {
+        lessons: [],
+        teachers: []
+        };
+
+        const draggableLessonElements = document.querySelectorAll('.draggable.droppable.lesson');
+
+        const draggableTeacherElements = document.querySelectorAll('.draggable.droppable.teacher');
+
+        draggableLessonElements.forEach(element => {
+            const id = element.getAttribute('id');
+            const lessonId = element.getAttribute('data-lesson-id');
+            data.lessons.push({ id: id, lessonId: lessonId });
+        });
+
+        draggableTeacherElements.forEach(element => {
+            const id = element.getAttribute('id');
+            const teacherId = element.getAttribute('data-fixed_shift-id');
+            data.teachers.push({ id: id, teacherId: teacherId });
+        });
+
+        fetch('{% url "owner:shift_template_update" %}', {
+            method: 'POST',
+            body: JSON.stringify(data),
+            headers:{
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => {
+                if (response.ok) {
+                    // 現在のURLを取得
+                    const currentUrl = window.location.href;
+                    // 現在のURLにリダイレクト
+                    window.location.href = currentUrl;
+                    editButton.disabled = false;
+                    editButton.removeEventListener('click', handleSaveButtonClick);
+                    editButton.addEventListener('click', handleEditButtonClick);
+                };
+        });
+
+        $(".draggable").draggable("disable");
+        $(".droppable").droppable("disable");
+    }
+
+        const editButton = document.getElementById('editButton');
+        editButton.addEventListener('click', handleEditButtonClick);
+
+</script>
+{% endblock %}
